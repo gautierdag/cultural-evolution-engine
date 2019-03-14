@@ -14,8 +14,8 @@ N_TRAIN_ALL = N_TRAIN_MED
 
 if __name__ == "__main__":
 
-    folder_name = 'different_targets'
-    f_generate_dataset = get_dataset_different_targets
+    folder_name = 'balanced'
+    f_generate_dataset = get_dataset_balanced
 
     seed = 42
     np.random.seed(seed)

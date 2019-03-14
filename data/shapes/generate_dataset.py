@@ -18,8 +18,6 @@ def get_dataset_balanced(size, seed):
     shuffle(images)
     return images
 
-# Review this
-
 
 def get_dataset_unbalanced(size, seed, least_freq_shape=SHAPE_CIRCLE, least_freq_ratio=0.1):
     np.random.seed(seed)
