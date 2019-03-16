@@ -1,72 +1,59 @@
-import numpy as np
 import os
 import pickle
+import numpy as np
+
+import torch
+import torchvision.models as models
+from torch.utils.data import DataLoader
 
 from generate_dataset import *
-from image_utils import *
+from cnn import ShapesDataset, get_features
 
-N_TRAIN_TINY = 1
-N_TRAIN_SMALL = 10
-N_TRAIN_MED = 100
-N_TRAIN_LARGE = 1000
-N_TRAIN_ALL = N_TRAIN_MED
-
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+SEED = 42
+BATCH_SIZE = 16  # batch size used to extract features
 
 if __name__ == "__main__":
 
-    folder_name = 'balanced'
-    f_generate_dataset = get_dataset_balanced
-
-    seed = 42
-    np.random.seed(seed)
+    folder_name = "balanced"
+    np.random.seed(SEED)
 
     # From Serhii's original experiment
     train_size = 74504
     val_size = 8279
     test_size = 40504
 
-    train_data, val_data, test_data = get_datasets(
-        train_size, val_size, test_size, f_generate_dataset, seed)
+    # --- Generate Datasets ----
+    train_data, valid_data, test_data = get_datasets(
+        train_size, val_size, test_size, get_dataset_balanced, SEED
+    )
 
-    has_tuples = type(train_data[0]) is tuple
+    sets = {"train": train_data, "valid": valid_data, "test": test_data}
 
-    train_data_tiny = train_data[:N_TRAIN_TINY]
-    train_data_small = train_data[:N_TRAIN_SMALL]
-    train_data_med = train_data[:N_TRAIN_MED]
-    train_data_large = train_data
-
-    sets = {
-        "train.tiny": train_data_tiny,
-        "train.small": train_data_small,
-        "train.med": train_data_med,
-        "train.large": train_data_large,
-        "val": val_data,
-        "test": test_data
-    }
-
+    # --- Save Generated Datasets ----
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    folder_name = os.path.join(dir_path, folder_name)
     if not os.path.exists(folder_name):
         os.mkdir(folder_name)
 
     for set_name, set_data in sets.items():
-        if not has_tuples:
-            set_inputs = np.asarray([image.data[:, :, 0:3]
-                                     for image in set_data])
-        else:
-            tuple_len = len(set_data[0])  # 2
-            n_rows = len(set_data)
-            set_inputs = np.zeros(
-                (n_rows, tuple_len, WIDTH, HEIGHT, N_CHANNELS), dtype=np.uint8)
-            for i in range(n_rows):
-                for j in range(tuple_len):
-                    set_inputs[i][j] = set_data[i][j].data[:, :, 0:3]
-
+        set_inputs = np.asarray([image.data[:, :, 0:3] for image in set_data])
         np.save("{}/{}.input".format(folder_name, set_name), set_inputs)
+        set_metadata = [image.metadata for image in set_data]
+        pickle.dump(
+            set_metadata, open("{}/{}.metadata.p".format(folder_name, set_name), "wb")
+        )
 
-        if not has_tuples:
-            set_metadata = [image.metadata for image in set_data]
-        else:
-            set_metadata = [(image[0].metadata, image[1].metadata)
-                            for image in set_data]
+    # --- Getting Features for the Generated Images ----
 
-        pickle.dump(set_metadata, open(
-            '{}/{}.metadata.p'.format(folder_name, set_name), 'wb'))
+    # Load Pretrained model and move model to device
+    vgg16 = models.vgg16(pretrained=True)
+    vgg16.to(device)
+    vgg16.eval()
+
+    # get features from train, valid, and test
+    for set_name in sets.keys():
+        images = np.load("{}/{}.input.npy".format(folder_name, set_name))
+        shapes_dl = DataLoader(ShapesDataset(images), batch_size=BATCH_SIZE)
+        features = get_features(vgg16, shapes_dl)
+        np.save("{}/{}_features.npy".format(dir_path, set_name), features)
