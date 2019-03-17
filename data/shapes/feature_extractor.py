@@ -9,6 +9,8 @@ from torch.utils.data import DataLoader
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+BATCH_SIZE = 16  # batch size used to extract features
+
 
 class ShapesDataset(data.Dataset):
     def __init__(self, images):

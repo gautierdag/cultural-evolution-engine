@@ -14,7 +14,6 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 SEED = 42
-BATCH_SIZE = 16  # batch size used to extract features
 
 
 def generate_image_dataset(size, seed=42):
