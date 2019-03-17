@@ -1,17 +1,44 @@
 import os
 import pickle
 import numpy as np
+from random import shuffle
 
 import torch
 import torchvision.models as models
 from torch.utils.data import DataLoader
 
-from generate_dataset import *
-from cnn import ShapesDataset, get_features
+from generate_images import get_image
+from feature_extractor import ShapesDataset, get_features
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 SEED = 42
 BATCH_SIZE = 16  # batch size used to extract features
+
+
+def generate_image_dataset(size, seed=42):
+    """
+    Generates an image dataset using the seed passed
+    """
+    images = []
+    for i in range(size):
+        images.append(get_image(seed + i))
+    shuffle(images)
+    return images
+
+
+def get_image_datasets(train_size, valid_size, test_size, seed=42):
+    """
+    Returns split image dataset with the desired sizes for train/valid/test
+    """
+    data = generate_image_dataset(train_size + valid_size + test_size, seed=seed)
+    train_data = data[:train_size]
+    valid_data = data[train_size : train_size + valid_size]
+    test_data = data[train_size + valid_size :]
+    assert len(train_data) == train_size
+    assert len(valid_data) == valid_size
+    assert len(test_data) == test_size
+    return train_data, valid_data, test_data
+
 
 if __name__ == "__main__":
 
@@ -20,12 +47,12 @@ if __name__ == "__main__":
 
     # From Serhii's original experiment
     train_size = 74504
-    val_size = 8279
+    valid_size = 8279
     test_size = 40504
 
     # --- Generate Datasets ----
-    train_data, valid_data, test_data = get_datasets(
-        train_size, val_size, test_size, get_dataset_balanced, SEED
+    train_data, valid_data, test_data = get_image_datasets(
+        train_size, valid_size, test_size, seed=SEED
     )
 
     sets = {"train": train_data, "valid": valid_data, "test": test_data}

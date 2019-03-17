@@ -1,4 +1,7 @@
 balanced/
+*.vscode
+*.npy
+*.pckl
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

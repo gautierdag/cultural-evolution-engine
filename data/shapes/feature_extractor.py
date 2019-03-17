@@ -1,6 +1,7 @@
 import torch
 import torchvision.transforms
 import torch.utils.data as data
+import numpy as np
 from PIL import Image
 from tqdm import tqdm
 

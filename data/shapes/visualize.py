@@ -13,17 +13,14 @@ def display_image(img):
     plt.show()
 
 
-folder = 'different_targets'
-npy_file = '{}/train.large.input.npy'.format(folder)
+if __name__ == "__main__":
 
-assert len(sys.argv) > 1, 'Indicate an index!'
+    folder = "different_targets"
+    npy_file = "{}/train.large.input.npy".format(folder)
 
-img = np.load(npy_file)[int(sys.argv[1])]
-print(img.shape)
+    assert len(sys.argv) > 1, "Indicate an index!"
 
-if len(img.shape) == 4:  # We have tuples because this is 4-D
-    n_images = img.shape[0]
-    for i in range(n_images):
-        display_image(img[i])
-else:
+    img = np.load(npy_file)[int(sys.argv[1])]
+    print(img.shape)
+
     display_image(img)
