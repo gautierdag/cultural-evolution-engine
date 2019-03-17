@@ -5,12 +5,14 @@ from random import shuffle
 
 import torch
 import torchvision.models as models
-from torch.utils.data import DataLoader
 
 from generate_images import get_image
-from feature_extractor import ShapesDataset, get_features
+from feature_extractor import get_features
 
+
+dir_path = os.path.dirname(os.path.realpath(__file__))
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 SEED = 42
 BATCH_SIZE = 16  # batch size used to extract features
 
@@ -40,7 +42,11 @@ def get_image_datasets(train_size, valid_size, test_size, seed=42):
     return train_data, valid_data, test_data
 
 
-if __name__ == "__main__":
+def generate_shapes_dataset():
+    """
+    Generates shapes dataset and extract features
+    @TODO - add parameters to extend generation and feature extraction process
+    """
 
     folder_name = "balanced"
     np.random.seed(SEED)
@@ -58,7 +64,6 @@ if __name__ == "__main__":
     sets = {"train": train_data, "valid": valid_data, "test": test_data}
 
     # --- Save Generated Datasets ----
-    dir_path = os.path.dirname(os.path.realpath(__file__))
     folder_name = os.path.join(dir_path, folder_name)
     if not os.path.exists(folder_name):
         os.mkdir(folder_name)
@@ -81,6 +86,5 @@ if __name__ == "__main__":
     # get features from train, valid, and test
     for set_name in sets.keys():
         images = np.load("{}/{}.input.npy".format(folder_name, set_name))
-        shapes_dl = DataLoader(ShapesDataset(images), batch_size=BATCH_SIZE)
-        features = get_features(vgg16, shapes_dl)
+        features = get_features(vgg16, images)
         np.save("{}/{}_features.npy".format(dir_path, set_name), features)

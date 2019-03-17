@@ -1,9 +1,11 @@
-import torch
-import torchvision.transforms
-import torch.utils.data as data
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
+
+import torch
+import torchvision.transforms
+import torch.utils.data as data
+from torch.utils.data import DataLoader
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -29,7 +31,10 @@ class ShapesDataset(data.Dataset):
         return self.data.shape[0]
 
 
-def get_features(model, dataloader):
+def get_features(model, images):
+
+    dataloader = DataLoader(ShapesDataset(images), batch_size=BATCH_SIZE)
+
     features = []
     for i, x in tqdm(enumerate(dataloader), total=len(dataloader)):
         x = x.to(device)
