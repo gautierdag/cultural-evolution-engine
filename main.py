@@ -12,8 +12,6 @@ from data.shapes import get_shapes_dataset, ShapesVocab
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-debugging = False
-
 
 def seed_torch(seed=42):
     """
@@ -32,6 +30,9 @@ def parse_arguments(args):
         description="Training Sender Receiver Agent on Shapes"
     )
     parser.add_argument(
+        "--debugging", help="Enable debugging mode (default: False", action="store_true"
+    )
+    parser.add_argument(
         "--epochs",
         type=int,
         default=100,
@@ -39,7 +40,7 @@ def parse_arguments(args):
         help="number of epochs to train (default: 100)",
     )
     parser.add_argument(
-        "--seed", type=int, default=42, metavar="S", help="random seed (default: 123)"
+        "--seed", type=int, default=42, metavar="S", help="random seed (default: 42)"
     )
     parser.add_argument(
         "--hidden-size",
@@ -55,7 +56,6 @@ def parse_arguments(args):
         metavar="N",
         help="embedding size for embedding layer (default: 256)",
     )
-
     parser.add_argument(
         "--batch-size",
         type=int,
@@ -63,15 +63,13 @@ def parse_arguments(args):
         metavar="N",
         help="input batch size for training (default: 128)",
     )
-
     parser.add_argument(
         "--max-length",
         type=int,
-        default=128,
+        default=10,
         metavar="N",
         help="max sentence length allowed for communication (default: 10)",
     )
-
     parser.add_argument(
         "--k",
         type=int,
