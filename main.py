@@ -63,8 +63,9 @@ if __name__ == "__main__":
     model.to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
-    scheduler = ReduceLROnPlateau(optimizer, mode='max' patience=30,
-                                  threshold=0.005, threshold_mode='rel')
+    scheduler = ReduceLROnPlateau(
+        optimizer, mode="max", patience=30, threshold=0.005, threshold_mode="rel"
+    )
 
     losses_meters = []
     eval_losses_meters = []
