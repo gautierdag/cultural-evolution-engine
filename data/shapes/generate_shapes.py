@@ -6,8 +6,8 @@ from random import shuffle
 import torch
 import torchvision.models as models
 
-from generate_images import get_image
-from feature_extractor import get_features
+from .generate_images import get_image
+from .feature_extractor import get_features
 
 
 dir_path = os.path.dirname(os.path.realpath(__file__))

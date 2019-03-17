@@ -3,8 +3,8 @@ import numpy as np
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import BatchSampler
 
-from ImageDataset import ImageDataset, ImagesSampler
-from generate_shapes import generate_shapes_dataset
+from .ImageDataset import ImageDataset, ImagesSampler
+from .generate_shapes import generate_shapes_dataset
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -72,5 +72,3 @@ def get_shapes_dataset(batch_size=16, k=3):
 
     return get_dataloaders(batch_size=batch_size, k=k)
 
-
-get_shapes_dataset()
