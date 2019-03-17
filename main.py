@@ -6,13 +6,15 @@ import os
 import sys
 
 import torch
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+
 from models import Model
 from train_utils import train_one_epoch, evaluate
 from data.shapes import get_shapes_dataset, ShapesVocab
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-debugging = True
+debugging = False
 
 SEED = 42
 
@@ -61,6 +63,8 @@ if __name__ == "__main__":
     model.to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    scheduler = ReduceLROnPlateau(optimizer, mode='max' patience=30,
+                                  threshold=0.005, threshold_mode='rel')
 
     losses_meters = []
     eval_losses_meters = []
@@ -81,12 +85,15 @@ if __name__ == "__main__":
             model, valid_data, vocab.bound_idx, MAX_SENTENCE_LENGTH
         )
 
+        scheduler.step(eval_acc_meter.avg)
+
         eval_losses_meters.append(eval_loss_meter)
         eval_accuracy_meters.append(eval_acc_meter)
 
         # Skip for now
         print(
-            "Epoch {}, average train loss: {}, average val loss: {}, average accuracy: {}, average val accuracy: {}".format(
+            "Epoch {}, average train loss: {}, average val loss: {}, \
+                average accuracy: {}, average val accuracy: {}".format(
                 epoch,
                 losses_meters[epoch].avg,
                 eval_losses_meters[epoch].avg,
