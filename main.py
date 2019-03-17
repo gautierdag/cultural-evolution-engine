@@ -6,10 +6,9 @@ import os
 import sys
 
 import torch
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from models import Model
-from train_utils import train_one_epoch, evaluate
+from train_utils import train_one_epoch, evaluate, EarlyStopping
 from data.shapes import get_shapes_dataset, ShapesVocab
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -62,10 +61,8 @@ if __name__ == "__main__":
     model = Model(n_image_features, vocab_size, EMBEDDING_DIM, HIDDEN_SIZE, BATCH_SIZE)
     model.to(device)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
-    scheduler = ReduceLROnPlateau(
-        optimizer, mode="max", patience=30, threshold=0.005, threshold_mode="rel"
-    )
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+    early_stopping = EarlyStopping(mode="max")
 
     losses_meters = []
     eval_losses_meters = []
@@ -86,7 +83,7 @@ if __name__ == "__main__":
             model, valid_data, vocab.bound_idx, MAX_SENTENCE_LENGTH
         )
 
-        scheduler.step(eval_acc_meter.avg)
+        early_stopping.step(eval_acc_meter.avg)
 
         eval_losses_meters.append(eval_loss_meter)
         eval_accuracy_meters.append(eval_acc_meter)
@@ -102,6 +99,10 @@ if __name__ == "__main__":
                 eval_accuracy_meters[epoch].avg,
             )
         )
+
+        if early_stopping.is_converged:
+            print("Converged in epoch {}".format(epoch))
+            break
 
     # Evaluate best model on test data
     _, test_acc_meter, test_messages = evaluate(
