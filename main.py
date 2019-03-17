@@ -62,7 +62,7 @@ if __name__ == "__main__":
     model = Model(n_image_features, vocab_size, EMBEDDING_DIM, HIDDEN_SIZE, BATCH_SIZE)
     model.to(device)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
     scheduler = ReduceLROnPlateau(optimizer, mode='max' patience=30,
                                   threshold=0.005, threshold_mode='rel')
 
