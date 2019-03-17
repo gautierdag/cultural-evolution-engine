@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from tqdm import tqdm
+from functools import partial
 
 
 class AverageMeter:
