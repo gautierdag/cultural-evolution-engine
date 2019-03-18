@@ -15,7 +15,7 @@ class Trainer(nn.Module):
     def forward(self, target, distractors):
         batch_size = len(target)
 
-        target.to(device)
+        target = target.to(device)
         distractors = [d.to(device) for d in distractors]
 
         messages, lengths = self.sender(self.tau, hidden_state=target)
@@ -34,7 +34,7 @@ class Trainer(nn.Module):
             d = d.view(batch_size, 1, -1)
             d_score = torch.bmm(d, r_transform).squeeze()
             distractors_scores.append(d_score)
-            zero_tensor = torch.tensor(0.0).to(device)
+            zero_tensor = torch.tensor(0.0, device=device)
 
             loss += torch.max(zero_tensor, 1.0 - target_score + d_score)
 
