@@ -88,29 +88,6 @@ class Sender(nn.Module):
 
         return state, batch_size
 
-    def _calculate_seq_len(
-        self, seq_lengths, token, initial_length, seq_pos, n_sos_symbols, is_discrete
-    ):
-        """
-            Calculates the lengths of each sequence in the batch in-place.
-            The length goes from the start of the sequece up until the eos_id is predicted.
-            If it is not predicted, then the length is output_len + n_sos_symbols.
-            Args:
-                seq_lengths (torch.tensor): To keep track of the sequence lengths.
-                token (torch.tensor): Batch of predicted tokens at this timestep.
-                initial_length (int): The max possible sequence length (output_len + n_sos_symbols).
-                seq_pos (int): The current timestep.
-                n_sos_symbols (int): Number of sos symbols at the beginning of the sequence.
-                is_discrete (bool): True if Gumbel Softmax is used, False otherwise.
-        """
-
-        for idx, elem in enumerate(token):
-            if seq_lengths[idx] == initial_length:
-                if (is_discrete and elem == self.eos_id) or (
-                    not is_discrete and elem[self.eos_id] == 1.0
-                ):
-                    seq_lengths[idx] = seq_pos + n_sos_symbols
-
     def forward(self, tau, hidden_state=None):
         """
         Performs a forward pass. If training, use Gumbel Softmax (hard)
@@ -136,13 +113,6 @@ class Sender(nn.Module):
                     device=device,
                 )
             ]
-
-        # Keep track of sequence lengths
-        # n_sos_symbols = 1
-        # initial_length = self.output_len + n_sos_symbols
-        # seq_lengths = (
-        #     torch.ones([batch_size], dtype=torch.int64, device=device) * initial_length
-        # )
 
         for i in range(self.output_len):
             if self.training:
@@ -172,13 +142,4 @@ class Sender(nn.Module):
 
             output.append(token)
 
-            # self._calculate_seq_len(
-            #     seq_lengths,
-            #     token,
-            #     initial_length,
-            #     seq_pos=i + 1,
-            #     n_sos_symbols=n_sos_symbols,
-            #     is_discrete=not self.training,
-            # )
         return torch.stack(output, dim=1)
-        # return (torch.stack(output, dim=1), seq_lengths)
