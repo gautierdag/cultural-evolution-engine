@@ -5,20 +5,19 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class Trainer(nn.Module):
-    def __init__(self, sender, receiver, tau=1.2):
+    def __init__(self, sender, receiver):
         super().__init__()
 
         self.sender = sender
         self.receiver = receiver
-        self.tau = tau
 
-    def forward(self, target, distractors):
-        batch_size = len(target)
+    def forward(self, target, distractors, tau=1.2):
+        batch_size = target.shape[0]
 
         target = target.to(device)
         distractors = [d.to(device) for d in distractors]
 
-        messages, lengths = self.sender(self.tau, hidden_state=target)
+        messages, lengths = self.sender(tau, hidden_state=target)
         r_transform = self.receiver(messages, lengths)
 
         loss = 0

@@ -26,7 +26,7 @@ class AverageMeter:
         self.avg = self.sum / self.count
 
 
-def train_one_epoch(model, data, optimizer):
+def train_one_epoch(model, data, optimizer, tau=1.2):
     loss_meter = AverageMeter()
     acc_meter = AverageMeter()
 
@@ -34,7 +34,7 @@ def train_one_epoch(model, data, optimizer):
     for d in tqdm(data, total=len(data)):
         optimizer.zero_grad()
         target, distractors = d
-        loss, acc, _ = model(target, distractors)
+        loss, acc, _ = model(target, distractors, tau=tau)
         loss_meter.update(loss.item())
         acc_meter.update(acc.item())
         loss.backward()
@@ -43,7 +43,7 @@ def train_one_epoch(model, data, optimizer):
     return loss_meter, acc_meter
 
 
-def evaluate(model, data):
+def evaluate(model, data, tau=1.2):
     loss_meter = AverageMeter()
     acc_meter = AverageMeter()
     messages = []
@@ -51,7 +51,7 @@ def evaluate(model, data):
     model.eval()
     for d in data:
         target, distractors = d
-        loss, acc, msg = model(target, distractors)
+        loss, acc, msg = model(target, distractors, tau=tau)
         loss_meter.update(loss.item())
         acc_meter.update(acc.item())
         messages.append(msg)
@@ -128,7 +128,8 @@ def get_filename_from_params(params):
     name += "_k_{}".format(params.k)
     name += "_vocab_{}".format(params.vocab_size)
     name += "_seed_{}".format(params.seed)
+    if params.greedy:
+        name += "_greedy"
     if params.debugging:
         name += "_debug"
-
     return name

@@ -40,6 +40,11 @@ def parse_arguments(args):
         "--debugging", help="Enable debugging mode (default: False", action="store_true"
     )
     parser.add_argument(
+        "--greedy",
+        help="Use argmax at prediction time instead of sampling (default: False",
+        action="store_true",
+    )
+    parser.add_argument(
         "--epochs",
         type=int,
         default=100,
@@ -84,7 +89,6 @@ def parse_arguments(args):
         metavar="N",
         help="Number of distractors (default: 3)",
     )
-
     parser.add_argument(
         "--vocab-size",
         type=int,
@@ -122,12 +126,25 @@ def main(args):
 
     # Print info
     print("----------------------------------------")
-    print("Model name: {}".format(model_name))
-    print("|V|: {}".format(args.vocab_size))
-    print("L: {}".format(args.max_length))
+    print(
+        "Model name: {} \n|V|: {}\nL: {}".format(
+            model_name, args.vocab_size, args.max_length
+        )
+    )
 
-    sender = Sender(args.vocab_size, args.max_length, vocab.bound_idx)
-    receiver = Receiver(args.vocab_size)
+    sender = Sender(
+        args.vocab_size,
+        args.max_length,
+        vocab.bound_idx,
+        embedding_size=args.embedding_size,
+        hidden_size=args.hidden_size,
+        greedy=args.greedy,
+    )
+    receiver = Receiver(
+        args.vocab_size,
+        embedding_size=args.embedding_size,
+        hidden_size=args.hidden_size,
+    )
     model = Trainer(sender, receiver)
     model.to(device)
 
@@ -165,13 +182,7 @@ def main(args):
             print("Converged in epoch {}".format(epoch))
             break
 
-    best_model = Model(
-        n_image_features,
-        args.vocab_size,
-        args.embedding_size,
-        args.hidden_size,
-        args.batch_size,
-    )
+    best_model = Trainer(sender, receiver)
     state = torch.load(
         "{}/best_model".format(run_folder),
         map_location=lambda storage, location: storage,
