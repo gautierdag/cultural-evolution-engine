@@ -35,7 +35,9 @@ class Trainer(nn.Module):
             d = d.view(batch_size, 1, -1)
             d_score = torch.bmm(d, r_transform).squeeze()
             all_scores[:, i + 1] = d_score
-            loss += torch.max(0, 1.0 - target_score + d_score)
+            loss += torch.max(
+                torch.tensor(0.0, device=device), 1.0 - target_score + d_score
+            )
 
         # Calculate accuracy
         all_scores = torch.exp(all_scores)
