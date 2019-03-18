@@ -28,25 +28,17 @@ class Trainer(nn.Module):
 
         target_score = torch.bmm(target, r_transform).squeeze()  # scalar
 
-        distractors_scores = []
-
-        for d in distractors:
-            d = d.view(batch_size, 1, -1)
-            d_score = torch.bmm(d, r_transform).squeeze()
-            distractors_scores.append(d_score)
-            zero_tensor = torch.tensor(0.0, device=device)
-
-            loss += torch.max(zero_tensor, 1.0 - target_score + d_score)
-
-        # Calculate accuracy
         all_scores = torch.zeros((batch_size, 1 + len(distractors)))
         all_scores[:, 0] = target_score
 
-        for i, score in enumerate(distractors_scores):
-            all_scores[:, i + 1] = score
+        for i, d in enumerate(distractors):
+            d = d.view(batch_size, 1, -1)
+            d_score = torch.bmm(d, r_transform).squeeze()
+            all_scores[:, i + 1] = d_score
+            loss += torch.max(0, 1.0 - target_score + d_score)
 
+        # Calculate accuracy
         all_scores = torch.exp(all_scores)
-
         _, max_idx = torch.max(all_scores, 1)
 
         accuracy = max_idx == 0
