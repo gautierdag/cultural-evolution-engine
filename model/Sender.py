@@ -138,11 +138,11 @@ class Sender(nn.Module):
             ]
 
         # Keep track of sequence lengths
-        n_sos_symbols = 1
-        initial_length = self.output_len + n_sos_symbols
-        seq_lengths = (
-            torch.ones([batch_size], dtype=torch.int64, device=device) * initial_length
-        )
+        # n_sos_symbols = 1
+        # initial_length = self.output_len + n_sos_symbols
+        # seq_lengths = (
+        #     torch.ones([batch_size], dtype=torch.int64, device=device) * initial_length
+        # )
 
         for i in range(self.output_len):
             if self.training:
@@ -172,13 +172,13 @@ class Sender(nn.Module):
 
             output.append(token)
 
-            self._calculate_seq_len(
-                seq_lengths,
-                token,
-                initial_length,
-                seq_pos=i + 1,
-                n_sos_symbols=n_sos_symbols,
-                is_discrete=not self.training,
-            )
-
-        return (torch.stack(output, dim=1), seq_lengths)
+            # self._calculate_seq_len(
+            #     seq_lengths,
+            #     token,
+            #     initial_length,
+            #     seq_pos=i + 1,
+            #     n_sos_symbols=n_sos_symbols,
+            #     is_discrete=not self.training,
+            # )
+        return torch.stack(output, dim=1)
+        # return (torch.stack(output, dim=1), seq_lengths)

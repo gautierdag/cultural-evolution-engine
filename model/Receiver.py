@@ -30,7 +30,7 @@ class Receiver(nn.Module):
             self.lstm.bias_hh_l0[self.hidden_size : 2 * self.hidden_size], val=1
         )
 
-    def forward(self, messages, seq_lengths):
+    def forward(self, messages):
         batch_size = messages.shape[0]
 
         emb = (
