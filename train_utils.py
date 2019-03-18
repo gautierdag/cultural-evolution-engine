@@ -115,3 +115,20 @@ class EarlyStopping:
             self.mode_worse = -float("inf")
 
         self.is_better = partial(self._cmp, mode, threshold_mode, threshold)
+
+
+def get_filename_from_params(params):
+    """
+    Generates a filename from params
+    """
+    name = "model"
+    name += "_e_{}".format(params.embedding_size)
+    name += "_h_{}".format(params.hidden_size)
+    name += "_max_len_{}".format(params.max_length)
+    name += "_k_{}".format(params.k)
+    name += "_vocab_{}".format(params.vocab_size)
+    name += "_seed_{}".format(params.seed)
+    if params.debugging:
+        name += "_debug"
+
+    return name

@@ -6,11 +6,18 @@ import os
 import sys
 import torch
 
+from tensorboardX import SummaryWriter
+from datetime import datetime
 from models import Model
-from train_utils import train_one_epoch, evaluate, EarlyStopping
+from train_utils import *
 from data.shapes import get_shapes_dataset, ShapesVocab
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Create Run folder if doesn't exist
+runs_dir = ".runs/"
+if not os.path.exists(runs_dir):
+    os.mkdir(runs_dir)
 
 
 def seed_torch(seed=42):
@@ -88,6 +95,10 @@ def parse_arguments(args):
 
     args = parser.parse_args(args)
 
+    if args.debugging:
+        args.epochs = 10
+        args.max_length = 5
+
     return args
 
 
@@ -104,11 +115,14 @@ def main(args):
         batch_size=args.batch_size, k=args.k
     )
 
-    model_id = "baseline"
+    model_name = get_filename_from_params(args)
+    timestamp = "/{:%m%d%H%M}".format(datetime.now())
+    run_folder = "runs/" + model_name
+    writer = SummaryWriter(log_dir=run_folder + "/" + timestamp)
 
     # Print info
     print("----------------------------------------")
-    print("Model name: {}".format(model_id))
+    print("Model name: {}".format(model_name))
     print("|V|: {}".format(args.vocab_size))
     print("L: {}".format(args.max_length))
 
@@ -124,39 +138,35 @@ def main(args):
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     early_stopping = EarlyStopping(mode="max")
 
-    losses_meters = []
-    eval_losses_meters = []
-    accuracy_meters = []
-    eval_accuracy_meters = []
-
     # Train
     for epoch in range(args.epochs):
 
-        epoch_loss_meter, epoch_acc_meter = train_one_epoch(
+        loss_meter, acc_meter = train_one_epoch(
             model, train_data, optimizer, vocab.bound_idx, args.max_length
         )
-
-        losses_meters.append(epoch_loss_meter)
-        accuracy_meters.append(epoch_acc_meter)
 
         eval_loss_meter, eval_acc_meter, eval_messages = evaluate(
             model, valid_data, vocab.bound_idx, args.max_length
         )
 
-        early_stopping.step(eval_acc_meter.avg)
+        writer.add_scalar("avg_train_epoch_loss", loss_meter.avg, epoch)
+        writer.add_scalar("avg_valid_epoch_loss", eval_loss_meter.avg, epoch)
+        writer.add_scalar("avg_train_epoch_acc", acc_meter.avg, epoch)
+        writer.add_scalar("avg_valid_epoch_acc", eval_acc_meter.avg, epoch)
 
-        eval_losses_meters.append(eval_loss_meter)
-        eval_accuracy_meters.append(eval_acc_meter)
+        early_stopping.step(eval_acc_meter.avg)
+        if early_stopping.num_bad_epochs == 0:
+            torch.save(model.state_dict(), "{}/best_model".format(run_folder))
 
         # Skip for now
         print(
             "Epoch {}, average train loss: {}, average val loss: {}, \
                 average accuracy: {}, average val accuracy: {}".format(
                 epoch,
-                losses_meters[epoch].avg,
-                eval_losses_meters[epoch].avg,
-                accuracy_meters[epoch].avg,
-                eval_accuracy_meters[epoch].avg,
+                loss_meter.avg,
+                eval_loss_meter.avg,
+                acc_meter.avg,
+                eval_acc_meter.avg,
             )
         )
 
@@ -164,11 +174,30 @@ def main(args):
             print("Converged in epoch {}".format(epoch))
             break
 
+    best_model = Model(
+        n_image_features,
+        args.vocab_size,
+        args.embedding_size,
+        args.hidden_size,
+        args.batch_size,
+    )
+    state = torch.load(
+        "{}/best_model".format(run_folder),
+        map_location=lambda storage, location: storage,
+    )
+    best_model.load_state_dict(state)
+    best_model.to(device)
+
     # Evaluate best model on test data
     _, test_acc_meter, test_messages = evaluate(
-        model, test_data, vocab.bound_idx, args.max_length
+        best_model, test_data, vocab.bound_idx, args.max_length
     )
     print("Test accuracy: {}".format(test_acc_meter.avg))
+
+    pickle.dump(
+        test_acc_meter, open("{}/test_accuracy_meter.p".format(run_folder), "wb")
+    )
+    pickle.dump(test_messages, open("{}/test_messages.p".format(run_folder), "wb"))
 
 
 if __name__ == "__main__":
