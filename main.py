@@ -8,7 +8,7 @@ import torch
 
 from tensorboardX import SummaryWriter
 from datetime import datetime
-from models import Model
+from model import Sender, Receiver, Trainer
 from train_utils import *
 from data.shapes import get_shapes_dataset, ShapesVocab
 
@@ -126,13 +126,9 @@ def main(args):
     print("|V|: {}".format(args.vocab_size))
     print("L: {}".format(args.max_length))
 
-    model = Model(
-        n_image_features,
-        args.vocab_size,
-        args.embedding_size,
-        args.hidden_size,
-        args.batch_size,
-    )
+    sender = Sender(args.vocab_size, args.max_length, vocab.bound_idx)
+    receiver = Receiver(args.vocab_size)
+    model = Trainer(sender, receiver)
     model.to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
@@ -141,13 +137,8 @@ def main(args):
     # Train
     for epoch in range(args.epochs):
 
-        loss_meter, acc_meter = train_one_epoch(
-            model, train_data, optimizer, vocab.bound_idx, args.max_length
-        )
-
-        eval_loss_meter, eval_acc_meter, eval_messages = evaluate(
-            model, valid_data, vocab.bound_idx, args.max_length
-        )
+        loss_meter, acc_meter = train_one_epoch(model, train_data, optimizer)
+        eval_loss_meter, eval_acc_meter, eval_messages = evaluate(model, valid_data)
 
         writer.add_scalar("avg_train_epoch_loss", loss_meter.avg, epoch)
         writer.add_scalar("avg_valid_epoch_loss", eval_loss_meter.avg, epoch)
@@ -189,9 +180,7 @@ def main(args):
     best_model.to(device)
 
     # Evaluate best model on test data
-    _, test_acc_meter, test_messages = evaluate(
-        best_model, test_data, vocab.bound_idx, args.max_length
-    )
+    _, test_acc_meter, test_messages = evaluate(best_model, test_data)
     print("Test accuracy: {}".format(test_acc_meter.avg))
 
     pickle.dump(

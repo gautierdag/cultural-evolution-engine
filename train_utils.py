@@ -26,7 +26,7 @@ class AverageMeter:
         self.avg = self.sum / self.count
 
 
-def train_one_epoch(model, data, optimizer, start_token_idx, max_length):
+def train_one_epoch(model, data, optimizer):
     loss_meter = AverageMeter()
     acc_meter = AverageMeter()
 
@@ -34,7 +34,7 @@ def train_one_epoch(model, data, optimizer, start_token_idx, max_length):
     for d in tqdm(data, total=len(data)):
         optimizer.zero_grad()
         target, distractors = d
-        loss, acc, _ = model(target, distractors, start_token_idx, max_length)
+        loss, acc, _ = model(target, distractors)
         loss_meter.update(loss.item())
         acc_meter.update(acc.item())
         loss.backward()
@@ -43,7 +43,7 @@ def train_one_epoch(model, data, optimizer, start_token_idx, max_length):
     return loss_meter, acc_meter
 
 
-def evaluate(model, data, start_token_idx, max_length):
+def evaluate(model, data):
     loss_meter = AverageMeter()
     acc_meter = AverageMeter()
     messages = []
@@ -51,7 +51,7 @@ def evaluate(model, data, start_token_idx, max_length):
     model.eval()
     for d in data:
         target, distractors = d
-        loss, acc, msg = model(target, distractors, start_token_idx, max_length)
+        loss, acc, msg = model(target, distractors)
         loss_meter.update(loss.item())
         acc_meter.update(acc.item())
         messages.append(msg)
