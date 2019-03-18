@@ -58,21 +58,26 @@ class Sender(nn.Module):
 
         if self.training:
             message = [
-                torch.zeros((self.batch_size, self.vocab_size), dtype=torch.float32).to(
-                    device
+                torch.zeros(
+                    (self.batch_size, self.vocab_size),
+                    dtype=torch.float32,
+                    device=device,
                 )
             ]
             message[0][:, start_token_idx] = 1.0
         else:
             message = [
                 torch.full(
-                    (self.batch_size,), fill_value=start_token_idx, dtype=torch.int64
-                ).to(device)
+                    (self.batch_size,),
+                    fill_value=start_token_idx,
+                    dtype=torch.int64,
+                    device=device,
+                )
             ]
 
         # h0, c0, w0
         h = self.aff_transform(t)  # batch_size, hidden_size
-        c = torch.zeros([self.batch_size, self.hidden_size]).to(device)
+        c = torch.zeros([self.batch_size, self.hidden_size], device=device)
 
         for i in range(max_sentence_length):  # or sampled <S>, but this is batched
             emb = (
@@ -137,8 +142,8 @@ class Receiver(nn.Module):
 
     def forward(self, m):
         # h0, c0
-        h = torch.zeros([self.batch_size, self.hidden_size]).to(device)
-        c = torch.zeros([self.batch_size, self.hidden_size]).to(device)
+        h = torch.zeros([self.batch_size, self.hidden_size], device=device)
+        c = torch.zeros([self.batch_size, self.hidden_size], device=device)
 
         # Need to change to batch dim second to iterate over tokens in message
         if len(m.shape) == 3:
