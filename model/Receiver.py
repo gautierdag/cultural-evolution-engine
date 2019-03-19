@@ -12,7 +12,7 @@ class Receiver(nn.Module):
         self.embedding_size = embedding_size
         self.hidden_size = hidden_size
 
-        self.lstm = nn.LSTM(embedding_size, hidden_size, num_layers=1)
+        self.lstm = nn.LSTM(embedding_size, hidden_size, num_layers=1, batch_first=True)
         self.embedding = nn.Parameter(
             torch.empty((vocab_size, embedding_size), dtype=torch.float32)
         )
@@ -35,10 +35,9 @@ class Receiver(nn.Module):
 
         emb = (
             torch.matmul(messages, self.embedding)
-            if messages.dtype == torch.float32
+            if self.training
             else self.embedding[messages]
         )
-        emb = emb.permute(1, 0, 2)
 
         _, (h_last, _) = self.lstm(emb)
 
