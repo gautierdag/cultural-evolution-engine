@@ -17,7 +17,7 @@ class Trainer(nn.Module):
         target = target.to(device)
         distractors = [d.to(device) for d in distractors]
 
-        messages = self.sender(tau, hidden_state=target)
+        messages, lengths = self.sender(tau, hidden_state=target)
         r_transform = self.receiver(messages)
 
         loss = 0

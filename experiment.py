@@ -1,6 +1,6 @@
 from main import main
 
-seeds = [42, 43, 44, 45, 46]
+seeds = [42, 43, 44, 45]
 
 # Test effect of max length
 for s in seeds:

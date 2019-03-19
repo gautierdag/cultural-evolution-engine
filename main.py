@@ -15,7 +15,7 @@ from data.shapes import get_shapes_dataset, ShapesVocab
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Create Run folder if doesn't exist
-runs_dir = ".runs/"
+runs_dir = "runs/"
 if not os.path.exists(runs_dir):
     os.mkdir(runs_dir)
 
@@ -153,7 +153,6 @@ def main(args):
 
     # Train
     for epoch in range(args.epochs):
-
         loss_meter, acc_meter = train_one_epoch(model, train_data, optimizer)
         eval_loss_meter, eval_acc_meter, eval_messages = evaluate(model, valid_data)
 
@@ -194,10 +193,10 @@ def main(args):
     _, test_acc_meter, test_messages = evaluate(best_model, test_data)
     print("Test accuracy: {}".format(test_acc_meter.avg))
 
+    torch.save(test_messages, open("{}/test_messages.p".format(run_folder)))
     pickle.dump(
         test_acc_meter, open("{}/test_accuracy_meter.p".format(run_folder), "wb")
     )
-    pickle.dump(test_messages, open("{}/test_messages.p".format(run_folder), "wb"))
 
 
 if __name__ == "__main__":
