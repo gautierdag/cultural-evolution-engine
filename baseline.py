@@ -3,7 +3,6 @@
 
 import pickle
 import argparse
-import os
 import sys
 import torch
 
@@ -14,11 +13,6 @@ from utils import *
 from data.shapes import ShapesVocab
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# Create Run folder if doesn't exist
-runs_dir = "runs/"
-if not os.path.exists(runs_dir):
-    os.mkdir(runs_dir)
 
 
 def parse_arguments(args):
@@ -116,7 +110,6 @@ def baseline(args):
             model_name, args.vocab_size, args.max_length
         )
     )
-
     sender = Sender(
         args.vocab_size,
         args.max_length,
@@ -130,6 +123,9 @@ def baseline(args):
         embedding_size=args.embedding_size,
         hidden_size=args.hidden_size,
     )
+    print(sender)
+    print(receiver)
+
     sender_file = "{}/sender.p".format(run_folder)
     receiver_file = "{}/receiver.p".format(run_folder)
     torch.save(sender, sender_file)

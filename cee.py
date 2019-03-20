@@ -84,7 +84,7 @@ def parse_arguments(args):
     parser.add_argument(
         "--population-size",
         type=int,
-        default=4,
+        default=3,
         metavar="N",
         help="Size of each sender and receiver pop (default: 4)",
     )
@@ -101,6 +101,13 @@ def parse_arguments(args):
         default=4,
         metavar="N",
         help="Number of sampling steps between culling",
+    )
+    parser.add_argument(
+        "--culling-rate",
+        type=float,
+        default=0.2,
+        metavar="N",
+        help="Percentage of population culled",
     )
 
     args = parser.parse_args(args)
@@ -128,6 +135,12 @@ def initialize_models(args, run_folder="runs/"):
         filenames (dict): dictionary containing the filepaths of the senders and receivers
     """
     filenames = {"senders": [], "receivers": []}
+    create_folder_if_not_exists(run_folder + "/senders")
+    create_folder_if_not_exists(run_folder + "/receivers")
+
+    # Load Vocab
+    vocab = ShapesVocab(args.vocab_size)
+
     for i in range(args.population_size):
         sender = Sender(
             args.vocab_size,
@@ -147,8 +160,17 @@ def initialize_models(args, run_folder="runs/"):
         torch.save(sender, sender_file)
         torch.save(receiver, receiver_file)
         filenames["senders"].append(sender_file)
-        filenames["senders"].append(receiver_file)
+        filenames["receivers"].append(receiver_file)
     return filenames
+
+
+def cull_model(model_filepath):
+    """
+    Reinitialize the weights of a single model
+    """
+    model = torch.load(model_filepath)
+    model.reset_parameters()
+    torch.save(model, model_filepath)
 
 
 def cee(args):
@@ -160,12 +182,52 @@ def cee(args):
     vocab = ShapesVocab(args.vocab_size)
 
     # Generate name for experiment folder
-    experiment_folder = get_filename_from_cee_params(args)
+    experiment_name = get_filename_from_cee_params(args)
+    experiment_folder = "runs/" + experiment_name
 
-    timestamp = "/{:%m%d%H%M}".format(datetime.now())
-    run_folder = "runs/" + model_name
-    writer = SummaryWriter(log_dir=run_folder + "/" + timestamp)
-    population_filenames = initialize_models(args)
+    # Create Experiment folder if doesn't exist
+    create_folder_if_not_exists(experiment_folder)
+    population_filenames = initialize_models(args, run_folder=experiment_folder)
+
+    for i in range(args.sampling_steps):
+        # Sampling from population
+        s_r = random.randrange(0, args.population_size)
+        r_r = random.randrange(0, args.population_size)
+
+        print("Matching sender {} with  receiver {}".format(s_r, r_r))
+        sender_name = population_filenames["senders"][s_r]
+        receiver_name = population_filenames["receivers"][r_r]
+
+        match_folder_path = experiment_folder + "/s{}_r{}".format(s_r, r_r)
+        create_folder_if_not_exists(match_folder_path)
+
+        timestamp = "/{:%m%d%H%M}".format(datetime.now())
+        writer = SummaryWriter(log_dir=match_folder_path + "/" + timestamp)
+        test_acc_meter, test_messages = shapes_trainer(
+            args,
+            sender_name,
+            receiver_name,
+            writer=writer,
+            run_folder=experiment_folder,  # used for best_model
+        )
+        torch.save(
+            test_messages, "{}/test_messages_step_{}.p".format(experiment_folder, i)
+        )
+        pickle.dump(
+            test_acc_meter,
+            open("{}/test_accuracy_meter_{}.p".format(match_folder_path, i), "wb"),
+        )
+
+        if i % args.culling_interval == 0 and i != 0:
+            c = max(1, int(args.culling_rate * args.population_size))
+            print("Culling {} models from sender and receiver populations".format(c))
+            for _ in range(c):
+                s_r = random.randrange(0, args.population_size)
+                r_r = random.randrange(0, args.population_size)
+                sender_name = population_filenames["senders"][s_r]
+                receiver_name = population_filenames["receivers"][r_r]
+                cull_model(sender_name)
+                cull_model(sender_name)
 
 
 if __name__ == "__main__":

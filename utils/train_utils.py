@@ -3,6 +3,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 from functools import partial
+import os
 
 
 class AverageMeter:
@@ -155,3 +156,11 @@ def seed_torch(seed=42):
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed(seed)
+
+
+def create_folder_if_not_exists(folder_name):
+    """
+    Creates folder at folder name if folder does not exist
+    """
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
