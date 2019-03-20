@@ -1,6 +1,7 @@
+# Baseline setting in which there are only two agents
+# - no evolution
+
 import pickle
-import numpy as np
-import random
 import argparse
 import os
 import sys
@@ -11,6 +12,7 @@ from datetime import datetime
 from model import Sender, Receiver, Trainer
 from train_utils import *
 from data.shapes import get_shapes_dataset, ShapesVocab
+from shapes_trainer import shapes_trainer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -18,17 +20,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 runs_dir = "runs/"
 if not os.path.exists(runs_dir):
     os.mkdir(runs_dir)
-
-
-def seed_torch(seed=42):
-    """
-    Seed random, numpy and torch with same seed
-    """
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(seed)
 
 
 def parse_arguments(args):
@@ -106,7 +97,7 @@ def parse_arguments(args):
     return args
 
 
-def main(args):
+def baseline(args):
 
     args = parse_arguments(args)
     seed_torch(seed=args.seed)
@@ -145,59 +136,20 @@ def main(args):
         embedding_size=args.embedding_size,
         hidden_size=args.hidden_size,
     )
-    model = Trainer(sender, receiver)
-    model.to(device)
+    sender_file = "{}/sender.p".format(run_folder)
+    receiver_file = "{}/receiver.p".format(run_folder)
+    torch.save(sender, sender_file)
+    torch.save(receiver, receiver_file)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
-    early_stopping = EarlyStopping(mode="max")
-
-    # Train
-    for epoch in range(args.epochs):
-        loss_meter, acc_meter = train_one_epoch(model, train_data, optimizer)
-        eval_loss_meter, eval_acc_meter, eval_messages = evaluate(model, valid_data)
-
-        writer.add_scalar("avg_train_epoch_loss", loss_meter.avg, epoch)
-        writer.add_scalar("avg_valid_epoch_loss", eval_loss_meter.avg, epoch)
-        writer.add_scalar("avg_train_epoch_acc", acc_meter.avg, epoch)
-        writer.add_scalar("avg_valid_epoch_acc", eval_acc_meter.avg, epoch)
-
-        early_stopping.step(eval_acc_meter.avg)
-        if early_stopping.num_bad_epochs == 0:
-            torch.save(model.state_dict(), "{}/best_model".format(run_folder))
-
-        # Skip for now
-        print(
-            "Epoch {}, average train loss: {}, average val loss: {}, \
-                average accuracy: {}, average val accuracy: {}".format(
-                epoch,
-                loss_meter.avg,
-                eval_loss_meter.avg,
-                acc_meter.avg,
-                eval_acc_meter.avg,
-            )
-        )
-
-        if early_stopping.is_converged:
-            print("Converged in epoch {}".format(epoch))
-            break
-
-    best_model = Trainer(sender, receiver)
-    state = torch.load(
-        "{}/best_model".format(run_folder),
-        map_location=lambda storage, location: storage,
+    test_acc_meter, test_messages = shapes_trainer(
+        args, sender_file, receiver_file, writer=writer
     )
-    best_model.load_state_dict(state)
-    best_model.to(device)
 
-    # Evaluate best model on test data
-    _, test_acc_meter, test_messages = evaluate(best_model, test_data)
-    print("Test accuracy: {}".format(test_acc_meter.avg))
-
-    torch.save(test_messages, open("{}/test_messages.p".format(run_folder)))
+    torch.save(test_messages, "{}/test_messages.p".format(run_folder))
     pickle.dump(
         test_acc_meter, open("{}/test_accuracy_meter.p".format(run_folder), "wb")
     )
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    baseline(sys.argv[1:])

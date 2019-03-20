@@ -1,4 +1,4 @@
-from main import main
+from baseline import baseline
 
 seeds = [42, 43, 44, 45]
 
@@ -6,4 +6,4 @@ seeds = [42, 43, 44, 45]
 for s in seeds:
     for l in range(1, 20):
         max_length_params = ["--seed", str(s), "--max-length", str(l)]
-        main(max_length_params)
+        baseline(max_length_params)

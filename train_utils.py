@@ -1,3 +1,5 @@
+import random
+import numpy as np
 import torch
 import torch.nn as nn
 from tqdm import tqdm
@@ -133,3 +135,14 @@ def get_filename_from_params(params):
     if params.debugging:
         name += "_debug"
     return name
+
+
+def seed_torch(seed=42):
+    """
+    Seed random, numpy and torch with same seed
+    """
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
