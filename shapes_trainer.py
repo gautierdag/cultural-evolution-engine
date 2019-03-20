@@ -13,7 +13,7 @@ from data.shapes import get_shapes_dataset, ShapesVocab
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def shapes_trainer(params, sender_file, receiver_file, writer=None):
+def shapes_trainer(params, sender_file, receiver_file, writer=None, run_folder="runs/"):
     """
     Args:
         params (dict, required): params must be a dict that contains
@@ -21,6 +21,10 @@ def shapes_trainer(params, sender_file, receiver_file, writer=None):
         sender_file (str, required): filename of sender model
         receiver_file (str, required): filename of receiver model
         writer (optional): tensorboard writer
+        run_folder (path, optional): where to save the temp best model
+    Returns:
+        test_acc_meter (meter obj): results of loss and accuracy on test
+        test_messages (torch tensor): generated messages on test set
     """
     # Load Vocab
     vocab = ShapesVocab(params.vocab_size)

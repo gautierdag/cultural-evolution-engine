@@ -142,7 +142,7 @@ def baseline(args):
     torch.save(receiver, receiver_file)
 
     test_acc_meter, test_messages = shapes_trainer(
-        args, sender_file, receiver_file, writer=writer
+        args, sender_file, receiver_file, writer=writer, run_folder=run_folder
     )
 
     torch.save(test_messages, "{}/test_messages.p".format(run_folder))
