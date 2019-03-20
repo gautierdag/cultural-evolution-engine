@@ -3,6 +3,7 @@
 
 import argparse
 import sys
+import pickle
 import torch
 import warnings
 
@@ -173,6 +174,25 @@ def cull_model(model_filepath):
     torch.save(model, model_filepath)
 
 
+def sampling_population_filenames(population_filenames):
+    """
+    Samples randomly from both senders and receivers population
+    Args:
+        population_filenames (dict, req):  dictionary object containing
+            the list of all senders and receivers in both populations
+    Returns:
+        sender_name - file name of sampled sender model
+        receiver_name - file name of sampled receiver model
+        s_r - sampled index for sender
+        r_r - sampled index for receiver
+    """
+    s_r = random.randrange(0, len(population_filenames["senders"]))
+    r_r = random.randrange(0, len(population_filenames["receivers"]))
+    sender_name = population_filenames["senders"][s_r]
+    receiver_name = population_filenames["receivers"][r_r]
+    return sender_name, receiver_name, s_r, r_r
+
+
 def cee(args):
 
     args = parse_arguments(args)
@@ -184,20 +204,21 @@ def cee(args):
     # Generate name for experiment folder
     experiment_name = get_filename_from_cee_params(args)
     experiment_folder = "runs/" + experiment_name
-
     # Create Experiment folder if doesn't exist
     create_folder_if_not_exists(experiment_folder)
+
+    # Save experiment params
+    pickle.dump(args, open("{}/experiment_params.p".format(experiment_folder), "wb"))
+
+    # Generate population and save intial models
     population_filenames = initialize_models(args, run_folder=experiment_folder)
 
     for i in range(args.sampling_steps):
         # Sampling from population
-        s_r = random.randrange(0, args.population_size)
-        r_r = random.randrange(0, args.population_size)
-
-        print("Matching sender {} with  receiver {}".format(s_r, r_r))
-        sender_name = population_filenames["senders"][s_r]
-        receiver_name = population_filenames["receivers"][r_r]
-
+        sender_name, receiver_name, s_r, r_r = sampling_population_filenames(
+            population_filenames
+        )
+        print("Matching sender {} with receiver {}".format(s_r, r_r))
         match_folder_path = experiment_folder + "/s{}_r{}".format(s_r, r_r)
         create_folder_if_not_exists(match_folder_path)
 
@@ -215,19 +236,18 @@ def cee(args):
         )
         pickle.dump(
             test_acc_meter,
-            open("{}/test_accuracy_meter_{}.p".format(match_folder_path, i), "wb"),
+            open("{}/test_acc_step_{}.p".format(match_folder_path, i), "wb"),
         )
 
         if i % args.culling_interval == 0 and i != 0:
             c = max(1, int(args.culling_rate * args.population_size))
             print("Culling {} models from sender and receiver populations".format(c))
             for _ in range(c):
-                s_r = random.randrange(0, args.population_size)
-                r_r = random.randrange(0, args.population_size)
-                sender_name = population_filenames["senders"][s_r]
-                receiver_name = population_filenames["receivers"][r_r]
+                sender_name, receiver_name, _, _ = sampling_population_filenames(
+                    population_filenames
+                )
                 cull_model(sender_name)
-                cull_model(sender_name)
+                cull_model(receiver_name)
 
 
 if __name__ == "__main__":
