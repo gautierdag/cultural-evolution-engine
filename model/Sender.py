@@ -40,9 +40,9 @@ class Sender(nn.Module):
             hidden_size, vocab_size
         )  # from a hidden state to the vocab
 
-        self._reset_parameters()
+        self.reset_parameters()
 
-    def _reset_parameters(self):
+    def reset_parameters(self):
         nn.init.normal_(self.embedding, 0.0, 0.1)
 
         nn.init.constant_(self.linear_out.weight, 0)
