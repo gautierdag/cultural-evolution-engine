@@ -62,7 +62,7 @@ def evaluate(model, data, tau=1.2):
 
 
 class EarlyStopping:
-    def __init__(self, mode="min", patience=30, threshold=5e-3, threshold_mode="rel"):
+    def __init__(self, mode="min", patience=10, threshold=5e-3, threshold_mode="rel"):
         self.mode = mode
         self.patience = patience
         self.threshold = threshold
