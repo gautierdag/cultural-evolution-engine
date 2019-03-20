@@ -10,9 +10,8 @@ import torch
 from tensorboardX import SummaryWriter
 from datetime import datetime
 from model import Receiver, Sender
-from train_utils import *
+from utils import *
 from data.shapes import ShapesVocab
-from shapes_trainer import shapes_trainer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

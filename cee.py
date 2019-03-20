@@ -1,9 +1,7 @@
 # Baseline setting in which there are only two agents
 # - no evolution
 
-import pickle
 import argparse
-import os
 import sys
 import torch
 import warnings
@@ -11,9 +9,8 @@ import warnings
 from tensorboardX import SummaryWriter
 from datetime import datetime
 from model import Receiver, Sender
-from train_utils import *
+from utils import *
 from data.shapes import ShapesVocab
-from shapes_trainer import shapes_trainer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

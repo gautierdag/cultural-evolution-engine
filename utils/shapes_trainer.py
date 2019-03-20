@@ -1,7 +1,7 @@
 import torch
 
 from model import Trainer
-from train_utils import *
+from .train_utils import *
 from data.shapes import get_shapes_dataset
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
