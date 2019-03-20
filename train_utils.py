@@ -1,7 +1,6 @@
 import random
 import numpy as np
 import torch
-import torch.nn as nn
 from tqdm import tqdm
 from functools import partial
 
@@ -119,9 +118,9 @@ class EarlyStopping:
         self.is_better = partial(self._cmp, mode, threshold_mode, threshold)
 
 
-def get_filename_from_params(params):
+def get_filename_from_baseline_params(params):
     """
-    Generates a filename from params
+    Generates a filename from baseline params (see baseline.py)
     """
     name = "model"
     name += "_e_{}".format(params.embedding_size)
@@ -134,6 +133,16 @@ def get_filename_from_params(params):
         name += "_greedy"
     if params.debugging:
         name += "_debug"
+    return name
+
+
+def get_filename_from_cee_params(params):
+    """
+    Generates a filename from cee params
+    """
+    name = "cee_pop_size_{}_sampling_{}_cull_interval_{}".format(
+        params.population_size, params.sampling_steps, params.culling_interval
+    )
     return name
 
 

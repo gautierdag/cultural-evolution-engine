@@ -1,14 +1,8 @@
-import pickle
-import argparse
-import os
-import sys
 import torch
 
-from tensorboardX import SummaryWriter
-from datetime import datetime
-from model import Sender, Receiver, Trainer
+from model import Trainer
 from train_utils import *
-from data.shapes import get_shapes_dataset, ShapesVocab
+from data.shapes import get_shapes_dataset
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -17,7 +11,7 @@ def shapes_trainer(params, sender_file, receiver_file, writer=None, run_folder="
     """
     Args:
         params (dict, required): params must be a dict that contains
-            vocab_size, batch_size, k and epochs
+            batch_size, k and epochs
         sender_file (str, required): filename of sender model
         receiver_file (str, required): filename of receiver model
         writer (optional): tensorboard writer
@@ -26,8 +20,6 @@ def shapes_trainer(params, sender_file, receiver_file, writer=None, run_folder="
         test_acc_meter (meter obj): results of loss and accuracy on test
         test_messages (torch tensor): generated messages on test set
     """
-    # Load Vocab
-    vocab = ShapesVocab(params.vocab_size)
 
     # Load data
     n_image_features, train_data, valid_data, test_data = get_shapes_dataset(
@@ -36,8 +28,6 @@ def shapes_trainer(params, sender_file, receiver_file, writer=None, run_folder="
 
     sender = torch.load(sender_file)
     receiver = torch.load(receiver_file)
-    print(sender)
-    print(receiver)
     model = Trainer(sender, receiver)
     model.to(device)
 

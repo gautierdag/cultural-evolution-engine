@@ -6,6 +6,7 @@ import argparse
 import os
 import sys
 import torch
+import warnings
 
 from tensorboardX import SummaryWriter
 from datetime import datetime
@@ -15,11 +16,6 @@ from data.shapes import ShapesVocab
 from shapes_trainer import shapes_trainer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# Create Run folder if doesn't exist
-runs_dir = "runs/"
-if not os.path.exists(runs_dir):
-    os.mkdir(runs_dir)
 
 
 def parse_arguments(args):
@@ -87,6 +83,28 @@ def parse_arguments(args):
         metavar="N",
         help="Size of vocabulary (default: 10)",
     )
+    # Cultural evolution parameters
+    parser.add_argument(
+        "--population-size",
+        type=int,
+        default=4,
+        metavar="N",
+        help="Size of each sender and receiver pop (default: 4)",
+    )
+    parser.add_argument(
+        "--sampling-steps",
+        type=int,
+        default=20,
+        metavar="N",
+        help="Number of sampling steps",
+    )
+    parser.add_argument(
+        "--culling-interval",
+        type=int,
+        default=4,
+        metavar="N",
+        help="Number of sampling steps between culling",
+    )
 
     args = parser.parse_args(args)
 
@@ -94,10 +112,49 @@ def parse_arguments(args):
         args.epochs = 10
         args.max_length = 5
 
+    if args.sampling_steps <= args.culling_interval:
+        warnings.warn(
+            "Culling interval greater than sampling steps.\n \
+            This means population will never be culled!"
+        )
+
     return args
 
 
-def baseline(args):
+def initialize_models(args, run_folder="runs/"):
+    """
+    Initializes args.population_size sender and receiver models
+    Args:
+        args (required): arguments obtained from argparse
+        run_folder (req): path of run folder to save models in
+    Returns:
+        filenames (dict): dictionary containing the filepaths of the senders and receivers
+    """
+    filenames = {"senders": [], "receivers": []}
+    for i in range(args.population_size):
+        sender = Sender(
+            args.vocab_size,
+            args.max_length,
+            vocab.bound_idx,
+            embedding_size=args.embedding_size,
+            hidden_size=args.hidden_size,
+            greedy=args.greedy,
+        )
+        receiver = Receiver(
+            args.vocab_size,
+            embedding_size=args.embedding_size,
+            hidden_size=args.hidden_size,
+        )
+        sender_file = "{}/senders/sender_{}.p".format(run_folder, i)
+        receiver_file = "{}/receivers/receiver_{}.p".format(run_folder, i)
+        torch.save(sender, sender_file)
+        torch.save(receiver, receiver_file)
+        filenames["senders"].append(sender_file)
+        filenames["senders"].append(receiver_file)
+    return filenames
+
+
+def cee(args):
 
     args = parse_arguments(args)
     seed_torch(seed=args.seed)
@@ -105,46 +162,14 @@ def baseline(args):
     # Load Vocab
     vocab = ShapesVocab(args.vocab_size)
 
-    model_name = get_filename_from_baseline_params(args)
+    # Generate name for experiment folder
+    experiment_folder = get_filename_from_cee_params(args)
+
     timestamp = "/{:%m%d%H%M}".format(datetime.now())
     run_folder = "runs/" + model_name
     writer = SummaryWriter(log_dir=run_folder + "/" + timestamp)
-
-    # Print info
-    print("----------------------------------------")
-    print(
-        "Model name: {} \n|V|: {}\nL: {}".format(
-            model_name, args.vocab_size, args.max_length
-        )
-    )
-
-    sender = Sender(
-        args.vocab_size,
-        args.max_length,
-        vocab.bound_idx,
-        embedding_size=args.embedding_size,
-        hidden_size=args.hidden_size,
-        greedy=args.greedy,
-    )
-    receiver = Receiver(
-        args.vocab_size,
-        embedding_size=args.embedding_size,
-        hidden_size=args.hidden_size,
-    )
-    sender_file = "{}/sender.p".format(run_folder)
-    receiver_file = "{}/receiver.p".format(run_folder)
-    torch.save(sender, sender_file)
-    torch.save(receiver, receiver_file)
-
-    test_acc_meter, test_messages = shapes_trainer(
-        args, sender_file, receiver_file, writer=writer, run_folder=run_folder
-    )
-
-    torch.save(test_messages, "{}/test_messages.p".format(run_folder))
-    pickle.dump(
-        test_acc_meter, open("{}/test_accuracy_meter.p".format(run_folder), "wb")
-    )
+    population_filenames = initialize_models(args)
 
 
 if __name__ == "__main__":
-    baseline(sys.argv[1:])
+    cee(sys.argv[1:])
