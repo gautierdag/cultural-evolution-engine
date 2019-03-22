@@ -43,4 +43,5 @@ class ShapesVocab(object):
 
         self.itos.append(self.START_TOKEN)
         self.stoi[self.START_TOKEN] = len(self.itos) - 1
+        self.bound_idx = self.stoi[self.START_TOKEN]
         self.save_vocab()
