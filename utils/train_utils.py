@@ -28,19 +28,31 @@ class AverageMeter:
         self.avg = self.sum / self.count
 
 
+def train_one_batch(model, batch, optimizer, tau=1.2):
+    """
+    Train for single batch
+    """
+    model.train()
+    optimizer.zero_grad()
+    target, distractors = batch
+    loss, acc, _ = model(target, distractors, tau=tau)
+    loss.backward()
+    optimizer.step()
+
+    return loss.item(), acc.item()
+
+
 def train_one_epoch(model, data, optimizer, tau=1.2):
+    """
+    Train for a whole epoch
+    """
     loss_meter = AverageMeter()
     acc_meter = AverageMeter()
 
-    model.train()
     for d in tqdm(data, total=len(data)):
-        optimizer.zero_grad()
-        target, distractors = d
-        loss, acc, _ = model(target, distractors, tau=tau)
-        loss_meter.update(loss.item())
-        acc_meter.update(acc.item())
-        loss.backward()
-        optimizer.step()
+        loss, acc = train_one_batch(model, d, optimizer, tau=tau)
+        loss_meter.update(loss)
+        acc_meter.update(acc)
 
     return loss_meter, acc_meter
 
@@ -141,8 +153,8 @@ def get_filename_from_cee_params(params):
     """
     Generates a filename from cee params
     """
-    name = "cee_pop_size_{}_sampling_{}_cull_interval_{}".format(
-        params.population_size, params.sampling_steps, params.culling_interval
+    name = "cee_pop_size_{}_epochs_{}_cull_interval_{}".format(
+        params.population_size, params.epochs, params.culling_interval
     )
     return name
 

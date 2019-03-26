@@ -21,8 +21,6 @@ def get_dataloaders(batch_size=16, k=3, debug=False):
     valid_features = np.load(dir_path + "/valid_features.npy")
     test_features = np.load(dir_path + "/test_features.npy")
 
-    n_image_features = valid_features.shape[1]
-
     if debug:
         train_features = train_features[:10000]
 
@@ -66,7 +64,7 @@ def get_dataloaders(batch_size=16, k=3, debug=False):
         ),
     )
 
-    return n_image_features, train_data, valid_data, test_data
+    return train_data, valid_data, test_data
 
 
 def get_shapes_dataset(batch_size=16, k=3, debug=False):

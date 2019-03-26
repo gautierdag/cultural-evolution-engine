@@ -9,9 +9,9 @@ import warnings
 
 from tensorboardX import SummaryWriter
 from datetime import datetime
-from model import Receiver, Sender
+from model import Receiver, Sender, Trainer
 from utils import *
-from data.shapes import ShapesVocab
+from data.shapes import ShapesVocab, get_shapes_dataset
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -90,13 +90,6 @@ def parse_arguments(args):
         help="Size of each sender and receiver pop (default: 4)",
     )
     parser.add_argument(
-        "--sampling-steps",
-        type=int,
-        default=20,
-        metavar="N",
-        help="Number of sampling steps",
-    )
-    parser.add_argument(
         "--culling-interval",
         type=int,
         default=4,
@@ -116,12 +109,6 @@ def parse_arguments(args):
     if args.debugging:
         args.epochs = 10
         args.max_length = 5
-
-    if args.sampling_steps <= args.culling_interval:
-        warnings.warn(
-            "Culling interval greater than sampling steps.\n \
-            This means population will never be culled!"
-        )
 
     return args
 
@@ -213,41 +200,42 @@ def cee(args):
     # Generate population and save intial models
     population_filenames = initialize_models(args, run_folder=experiment_folder)
 
-    for i in range(args.sampling_steps):
-        # Sampling from population
-        sender_name, receiver_name, s_r, r_r = sampling_population_filenames(
-            population_filenames
-        )
-        print("Matching sender {} with receiver {}".format(s_r, r_r))
-        match_folder_path = experiment_folder + "/s{}_r{}".format(s_r, r_r)
-        create_folder_if_not_exists(match_folder_path)
+    for epoch in range(args.epochs):
 
-        timestamp = "/{:%m%d%H%M}".format(datetime.now())
-        writer = SummaryWriter(log_dir=match_folder_path + "/" + timestamp)
-        test_acc_meter, test_messages = shapes_trainer(
-            args,
-            sender_name,
-            receiver_name,
-            writer=writer,
-            run_folder=experiment_folder,  # used for best_model
-        )
-        torch.save(
-            test_messages, "{}/test_messages_step_{}.p".format(experiment_folder, i)
-        )
-        pickle.dump(
-            test_acc_meter,
-            open("{}/test_acc_step_{}.p".format(match_folder_path, i), "wb"),
+        # Load data
+        train_data, valid_data, test_data = get_shapes_dataset(
+            batch_size=args.batch_size, k=args.k, debug=args.debugging
         )
 
-        if i % args.culling_interval == 0 and i != 0:
-            c = max(1, int(args.culling_rate * args.population_size))
-            print("Culling {} models from sender and receiver populations".format(c))
-            for _ in range(c):
-                sender_name, receiver_name, _, _ = sampling_population_filenames(
-                    population_filenames
-                )
-                cull_model(sender_name)
-                cull_model(receiver_name)
+        for batch in train_data:
+            # Sampling from population
+            sender_name, receiver_name, s_r, r_r = sampling_population_filenames(
+                population_filenames
+            )
+
+            sender = torch.load(sender_name)
+            receiver = torch.load(receiver_name)
+
+            model = Trainer(sender, receiver)
+            model.to(device)
+            optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+
+            loss, acc = train_one_batch(model, batch, optimizer)
+            print("Loss: {0:.3g} \t Acc: {1:.3g}".format(loss, acc))
+
+            # Update receiver and sender files with new state
+            torch.save(model.sender, sender_name)
+            torch.save(model.receiver, receiver_name)
+
+        # if i % args.culling_interval == 0 and i != 0:
+        c = max(1, int(args.culling_rate * args.population_size))
+        print("Culling {} models from sender and receiver populations".format(c))
+        for _ in range(c):
+            sender_name, receiver_name, _, _ = sampling_population_filenames(
+                population_filenames
+            )
+            cull_model(sender_name)
+            cull_model(receiver_name)
 
 
 if __name__ == "__main__":

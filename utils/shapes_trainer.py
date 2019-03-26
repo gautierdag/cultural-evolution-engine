@@ -22,7 +22,7 @@ def shapes_trainer(params, sender_file, receiver_file, writer=None, run_folder="
     """
 
     # Load data
-    n_image_features, train_data, valid_data, test_data = get_shapes_dataset(
+    train_data, valid_data, test_data = get_shapes_dataset(
         batch_size=params.batch_size, k=params.k, debug=params.debugging
     )
 
