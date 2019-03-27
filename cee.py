@@ -155,8 +155,9 @@ def initialize_models(args, run_folder="runs/"):
         receiver_file = "{}/receivers/receiver_{}.p".format(run_folder, i)
         torch.save(sender, sender_file)
         torch.save(receiver, receiver_file)
-        filenames["senders"][sender_file] = 0
-        filenames["receivers"][receiver_file] = 0
+        filenames["senders"][sender_file] = {"avg_loss": 0, "avg_acc": 0, "age": 0}
+        filenames["receivers"][receiver_file] = {"avg_loss": 0, "avg_acc": 0, "age": 0}
+
     return filenames
 
 
@@ -185,6 +186,27 @@ def shapes_trainer(sender_name, receiver_name, batch):
     torch.save(model.receiver, receiver_name)
 
     return loss, acc
+
+
+def evaluate_pair(sender_name, receiver_name, test_data):
+    """
+    Evaluates pair of sender/receiver on test data and returns avg loss/acc
+    and generated messages
+    Args:
+        sender_name (path): path of sender model
+        receiver_name (path): path of receiver model
+        test_data (dataloader): dataloader of data to evaluate on
+    Returns:
+        avg_loss (float): average loss over data
+        avg_acc (float): average accuracy over data
+        test_messages (tensor): generated messages from data
+    """
+    sender = torch.load(sender_name)
+    receiver = torch.load(receiver_name)
+    model = Trainer(sender, receiver)
+    model.to(device)
+    test_loss_meter, test_acc_meter, test_messages = evaluate(model, test_data)
+    return test_loss_meter.avg, test_acc_meter.avg, test_messages
 
 
 def cee(args):
@@ -219,8 +241,18 @@ def cee(args):
             receiver_name = sample_population(population_filenames["receivers"])
             loss, acc = shapes_trainer(sender_name, receiver_name, batch)
             print("Loss: {0:.3g} \t Acc: {1:.3g}".format(loss, acc))
-            if i % args.log_interval == 0 and i > 0:
+            if i % args.log_interval == 0:
                 print("Evaluating Match")
+                avg_loss, avg_acc, test_messages = evaluate_pair(
+                    sender_name, receiver_name, test_data
+                )
+                population_filenames["senders"][sender_name]["avg_loss"] = avg_loss
+                population_filenames["receivers"][receiver_name]["avg_loss"] = avg_loss
+                population_filenames["senders"][sender_name]["avg_acc"] = avg_acc
+                population_filenames["receivers"][receiver_name]["avg_acc"] = avg_acc
+                torch.save(
+                    test_messages, "{}/test_messages_iter_{}.p".format(run_folder, i)
+                )
 
             i += 1
 
