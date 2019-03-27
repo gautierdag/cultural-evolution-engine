@@ -12,6 +12,7 @@ from datetime import datetime
 from model import Receiver, Sender, Trainer
 from utils import *
 from data.shapes import ShapesVocab, get_shapes_dataset
+from cee.population_utils import *
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -35,6 +36,13 @@ def parse_arguments(args):
         default=100,
         metavar="N",
         help="number of epochs to train (default: 100)",
+    )
+    parser.add_argument(
+        "--log-interval",
+        type=int,
+        default=200,
+        metavar="N",
+        help="Number of iterations steps between evaluation",
     )
     parser.add_argument(
         "--seed", type=int, default=42, metavar="S", help="random seed (default: 42)"
@@ -122,7 +130,7 @@ def initialize_models(args, run_folder="runs/"):
     Returns:
         filenames (dict): dictionary containing the filepaths of the senders and receivers
     """
-    filenames = {"senders": [], "receivers": []}
+    filenames = {"senders": {}, "receivers": {}}
     create_folder_if_not_exists(run_folder + "/senders")
     create_folder_if_not_exists(run_folder + "/receivers")
 
@@ -147,37 +155,36 @@ def initialize_models(args, run_folder="runs/"):
         receiver_file = "{}/receivers/receiver_{}.p".format(run_folder, i)
         torch.save(sender, sender_file)
         torch.save(receiver, receiver_file)
-        filenames["senders"].append(sender_file)
-        filenames["receivers"].append(receiver_file)
+        filenames["senders"][sender_file] = 0
+        filenames["receivers"][receiver_file] = 0
     return filenames
 
 
-def cull_model(model_filepath):
+def shapes_trainer(sender_name, receiver_name, batch):
     """
-    Reinitialize the weights of a single model
-    """
-    model = torch.load(model_filepath)
-    model.reset_parameters()
-    torch.save(model, model_filepath)
-
-
-def sampling_population_filenames(population_filenames):
-    """
-    Samples randomly from both senders and receivers population
+    Trains sender and receiver model for one batch
     Args:
-        population_filenames (dict, req):  dictionary object containing
-            the list of all senders and receivers in both populations
+        sender_name (path): path of sender model
+        receiver_name (path): path of receiver model
+        batch: batch from dataloader
     Returns:
-        sender_name - file name of sampled sender model
-        receiver_name - file name of sampled receiver model
-        s_r - sampled index for sender
-        r_r - sampled index for receiver
+        loss: loss from batch
+        acc: accuracy from batch
     """
-    s_r = random.randrange(0, len(population_filenames["senders"]))
-    r_r = random.randrange(0, len(population_filenames["receivers"]))
-    sender_name = population_filenames["senders"][s_r]
-    receiver_name = population_filenames["receivers"][r_r]
-    return sender_name, receiver_name, s_r, r_r
+    sender = torch.load(sender_name)
+    receiver = torch.load(receiver_name)
+
+    model = Trainer(sender, receiver)
+    model.to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+
+    loss, acc = train_one_batch(model, batch, optimizer)
+
+    # Update receiver and sender files with new state
+    torch.save(model.sender, sender_name)
+    torch.save(model.receiver, receiver_name)
+
+    return loss, acc
 
 
 def cee(args):
@@ -185,12 +192,10 @@ def cee(args):
     args = parse_arguments(args)
     seed_torch(seed=args.seed)
 
-    # Load Vocab
-    vocab = ShapesVocab(args.vocab_size)
-
     # Generate name for experiment folder
     experiment_name = get_filename_from_cee_params(args)
     experiment_folder = "runs/" + experiment_name
+
     # Create Experiment folder if doesn't exist
     create_folder_if_not_exists(experiment_folder)
 
@@ -200,6 +205,7 @@ def cee(args):
     # Generate population and save intial models
     population_filenames = initialize_models(args, run_folder=experiment_folder)
 
+    i = 0
     for epoch in range(args.epochs):
 
         # Load data
@@ -209,33 +215,17 @@ def cee(args):
 
         for batch in train_data:
             # Sampling from population
-            sender_name, receiver_name, s_r, r_r = sampling_population_filenames(
-                population_filenames
-            )
-
-            sender = torch.load(sender_name)
-            receiver = torch.load(receiver_name)
-
-            model = Trainer(sender, receiver)
-            model.to(device)
-            optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
-
-            loss, acc = train_one_batch(model, batch, optimizer)
+            sender_name = sample_population(population_filenames["senders"])
+            receiver_name = sample_population(population_filenames["receivers"])
+            loss, acc = shapes_trainer(sender_name, receiver_name, batch)
             print("Loss: {0:.3g} \t Acc: {1:.3g}".format(loss, acc))
+            if i % args.log_interval == 0 and i > 0:
+                print("Evaluating Match")
 
-            # Update receiver and sender files with new state
-            torch.save(model.sender, sender_name)
-            torch.save(model.receiver, receiver_name)
+            i += 1
 
-        # if i % args.culling_interval == 0 and i != 0:
-        c = max(1, int(args.culling_rate * args.population_size))
-        print("Culling {} models from sender and receiver populations".format(c))
-        for _ in range(c):
-            sender_name, receiver_name, _, _ = sampling_population_filenames(
-                population_filenames
-            )
-            cull_model(sender_name)
-            cull_model(receiver_name)
+        cull_population(population_filenames["senders"])
+        cull_population(population_filenames["receivers"])
 
 
 if __name__ == "__main__":
