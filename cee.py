@@ -1,5 +1,4 @@
-# Baseline setting in which there are only two agents
-# - no evolution
+# Cultural Evolution using Shapes
 
 import argparse
 import sys
@@ -11,8 +10,10 @@ from tensorboardX import SummaryWriter
 from datetime import datetime
 from model import Receiver, Sender, Trainer
 from utils import *
-from data.shapes import ShapesVocab, get_shapes_dataset
+from data.shapes import ShapesVocab, get_shapes_dataset, get_shapes_metadata
+
 from cee.population_utils import *
+from cee.metrics import representation_similarity_analysis
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -190,7 +191,7 @@ def shapes_trainer(sender_name, receiver_name, batch):
 
 def evaluate_pair(sender_name, receiver_name, test_data):
     """
-    Evaluates pair of sender/receiver on test data and returns avg loss/acc
+    Evaluates random pair of sender/receiver on test data and returns avg loss/acc
     and generated messages
     Args:
         sender_name (path): path of sender model
@@ -206,7 +207,15 @@ def evaluate_pair(sender_name, receiver_name, test_data):
     model = Trainer(sender, receiver)
     model.to(device)
     test_loss_meter, test_acc_meter, test_messages = evaluate(model, test_data)
+
     return test_loss_meter.avg, test_acc_meter.avg, test_messages
+
+
+def evaluate_messages(messages):
+    metadata = get_shapes_metadata()
+    messages = messages.cpu().numpy()
+    rsa = representation_similarity_analysis(messages, metadata)
+    return rsa
 
 
 def cee(args):
@@ -227,6 +236,10 @@ def cee(args):
     # Generate population and save intial models
     population_filenames = initialize_models(args, run_folder=experiment_folder)
 
+    # Tensorboard tracker for evolution process
+    timestamp = "/{:%m%d%H%M}".format(datetime.now())
+    writer = SummaryWriter(log_dir=experiment_folder + "/" + timestamp)
+
     i = 0
     for epoch in range(args.epochs):
 
@@ -241,17 +254,29 @@ def cee(args):
             receiver_name = sample_population(population_filenames["receivers"])
             loss, acc = shapes_trainer(sender_name, receiver_name, batch)
             print("Loss: {0:.3g} \t Acc: {1:.3g}".format(loss, acc))
+
+            # update avg acc and avg loss of the sampled models
+            population_filenames["senders"][sender_name]["loss"] = loss
+            population_filenames["receivers"][receiver_name]["loss"] = loss
+            population_filenames["senders"][sender_name]["acc"] = acc
+            population_filenames["receivers"][receiver_name]["acc"] = acc
+
             if i % args.log_interval == 0:
                 print("Evaluating Match")
                 avg_loss, avg_acc, test_messages = evaluate_pair(
                     sender_name, receiver_name, test_data
                 )
-                population_filenames["senders"][sender_name]["avg_loss"] = avg_loss
-                population_filenames["receivers"][receiver_name]["avg_loss"] = avg_loss
-                population_filenames["senders"][sender_name]["avg_acc"] = avg_acc
-                population_filenames["receivers"][receiver_name]["avg_acc"] = avg_acc
+                print(
+                    "Test Loss: {0:.3g} \t Test Acc: {1:.3g}".format(avg_loss, avg_acc)
+                )
+                rsa = evaluate_messages(test_messages)
+
+                writer.add_scalar("rsa", rsa, i)
+                writer.add_scalar("avg_acc", avg_acc, i)
+                writer.add_scalar("avg_loss", avg_loss, i)
+
                 torch.save(
-                    test_messages, "{}/test_messages_iter_{}.p".format(run_folder, i)
+                    test_messages, "{}/test_messages_{}.p".format(experiment_folder, i)
                 )
 
             i += 1

@@ -68,9 +68,13 @@ def get_dataloaders(batch_size=16, k=3, debug=False):
 
 
 def get_shapes_dataset(batch_size=16, k=3, debug=False):
+    """
+    Args:
+        batch_size (int, opt): batch size of dataloaders
+        k (int, opt): number of distractors
+    """
     if not os.path.exists(dir_path + "/train_features.npy"):
         print("Features files not present - generating dataset")
         generate_shapes_dataset()
 
     return get_dataloaders(batch_size=batch_size, k=k, debug=debug)
-
