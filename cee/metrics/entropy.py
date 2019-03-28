@@ -9,6 +9,7 @@ def language_entropy(generated_messages):
     Args:
         generated_messages: generated messages output from eval on test
     """
+    eos_token = generated_messages.max()
     padded_messages = np.zeros(
         (generated_messages.shape[0], generated_messages.shape[1] - 1)
     )
