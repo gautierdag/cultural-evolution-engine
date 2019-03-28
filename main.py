@@ -163,11 +163,11 @@ def main(args):
                 writer.add_scalar("language_entropy", l_entropy, i)
                 writer.add_scalar("avg_acc", avg_acc, i)
                 writer.add_scalar("avg_loss", avg_loss, i)
-            print(
-                "{0}/{1}\tAvg Loss: {2:.3g}\tAvg Acc: {3:.3g}\tAvg Entropy: {4:.3g}\tAvg RSA: {5:.3g}".format(
-                    i, args.iterations, avg_loss, avg_acc, l_entropy, rsa
+                print(
+                    "{0}/{1}\tAvg Loss: {2:.3g}\tAvg Acc: {3:.3g}\tAvg Entropy: {4:.3g}\tAvg RSA: {5:.3g}".format(
+                        i, args.iterations, avg_loss, avg_acc, l_entropy, rsa
+                    )
                 )
-            )
 
             if i % args.culling_interval == 0 and i > 0:
                 # Cull senders
