@@ -13,7 +13,7 @@ from utils import *
 from data.shapes import ShapesVocab, get_shapes_dataset, get_shapes_metadata
 
 from cee.population_utils import *
-from cee.metrics import representation_similarity_analysis
+from cee.metrics import representation_similarity_analysis, language_entropy
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -32,18 +32,18 @@ def parse_arguments(args):
         action="store_true",
     )
     parser.add_argument(
-        "--epochs",
+        "--iterations",
         type=int,
-        default=100,
+        default=50000,
         metavar="N",
-        help="number of epochs to train (default: 100)",
+        help="number of batch iterations to train for (default: 50k)",
     )
     parser.add_argument(
         "--log-interval",
         type=int,
-        default=200,
+        default=1000,
         metavar="N",
-        help="Number of iterations steps between evaluation",
+        help="Number of iterations steps between evaluation (default: 1000)",
     )
     parser.add_argument(
         "--seed", type=int, default=42, metavar="S", help="random seed (default: 42)"
@@ -94,16 +94,16 @@ def parse_arguments(args):
     parser.add_argument(
         "--population-size",
         type=int,
-        default=3,
+        default=4,
         metavar="N",
         help="Size of each sender and receiver pop (default: 4)",
     )
     parser.add_argument(
         "--culling-interval",
         type=int,
-        default=4,
+        default=5000,
         metavar="N",
-        help="Number of sampling steps between culling",
+        help="Number of sampling steps between culling (default: 5k)",
     )
     parser.add_argument(
         "--culling-rate",
@@ -191,7 +191,7 @@ def shapes_trainer(sender_name, receiver_name, batch):
 
 def evaluate_pair(sender_name, receiver_name, test_data):
     """
-    Evaluates random pair of sender/receiver on test data and returns avg loss/acc
+    Evaluates pair of sender/receiver on test data and returns avg loss/acc
     and generated messages
     Args:
         sender_name (path): path of sender model
@@ -215,7 +215,9 @@ def evaluate_messages(messages):
     metadata = get_shapes_metadata()
     messages = messages.cpu().numpy()
     rsa = representation_similarity_analysis(messages, metadata)
-    return rsa
+    l_entropy = language_entropy(messages)
+
+    return rsa, l_entropy
 
 
 def cee(args):
@@ -240,38 +242,38 @@ def cee(args):
     timestamp = "/{:%m%d%H%M}".format(datetime.now())
     writer = SummaryWriter(log_dir=experiment_folder + "/" + timestamp)
 
+    # Load data
+    train_data, valid_data, test_data = get_shapes_dataset(
+        batch_size=args.batch_size, k=args.k, debug=args.debugging
+    )
+
     i = 0
-    for epoch in range(args.epochs):
-
-        # Load data
-        train_data, valid_data, test_data = get_shapes_dataset(
-            batch_size=args.batch_size, k=args.k, debug=args.debugging
-        )
-
+    while i < args.iterations:
         for batch in train_data:
             # Sampling from population
             sender_name = sample_population(population_filenames["senders"])
             receiver_name = sample_population(population_filenames["receivers"])
             loss, acc = shapes_trainer(sender_name, receiver_name, batch)
-            print("Loss: {0:.3g} \t Acc: {1:.3g}".format(loss, acc))
-
-            # update avg acc and avg loss of the sampled models
-            population_filenames["senders"][sender_name]["loss"] = loss
-            population_filenames["receivers"][receiver_name]["loss"] = loss
-            population_filenames["senders"][sender_name]["acc"] = acc
-            population_filenames["receivers"][receiver_name]["acc"] = acc
 
             if i % args.log_interval == 0:
-                print("Evaluating Match")
-                avg_loss, avg_acc, test_messages = evaluate_pair(
-                    sender_name, receiver_name, test_data
-                )
+                if args.debugging:
+                    avg_loss, avg_acc, test_messages = evaluate_pair(
+                        sender_name, receiver_name, valid_data
+                    )
+                else:
+                    avg_loss, avg_acc, test_messages = evaluate_pair(
+                        sender_name, receiver_name, test_data
+                    )
+
                 print(
-                    "Test Loss: {0:.3g} \t Test Acc: {1:.3g}".format(avg_loss, avg_acc)
+                    "{}/{}\tTest Loss: {0:.3g}\tTest Acc: {1:.3g}".format(
+                        i, args.iterations, avg_loss, avg_acc
+                    )
                 )
-                rsa = evaluate_messages(test_messages)
+                rsa, l_entropy = evaluate_messages(test_messages)
 
                 writer.add_scalar("rsa", rsa, i)
+                writer.add_scalar("language_entropy", l_entropy, i)
                 writer.add_scalar("avg_acc", avg_acc, i)
                 writer.add_scalar("avg_loss", avg_loss, i)
 
@@ -279,10 +281,11 @@ def cee(args):
                     test_messages, "{}/test_messages_{}.p".format(experiment_folder, i)
                 )
 
-            i += 1
+            if i % args.culling_interval == 0 and i > 0:
+                cull_population(population_filenames["senders"])
+                cull_population(population_filenames["receivers"])
 
-        cull_population(population_filenames["senders"])
-        cull_population(population_filenames["receivers"])
+            i += 1
 
 
 if __name__ == "__main__":
