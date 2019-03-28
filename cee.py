@@ -266,7 +266,7 @@ def cee(args):
                     )
 
                 print(
-                    "{}/{}\tTest Loss: {0:.3g}\tTest Acc: {1:.3g}".format(
+                    "{0}/{1}\tTest Loss: {2:.3g}\tTest Acc: {3:.3g}".format(
                         i, args.iterations, avg_loss, avg_acc
                     )
                 )
