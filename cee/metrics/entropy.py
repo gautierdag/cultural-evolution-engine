@@ -16,10 +16,10 @@ def language_entropy(generated_messages):
         run_entropy_on_full = True
         for t in range(1, generated_messages.shape[1]):
             if messages[m][t] == eos_token:
-                padded_messages[m, : t - 1] = messages[m, 1:t]
+                padded_messages[m, : t - 1] = generated_messages[m, 1:t]
                 run_entropy_on_full = False
         if run_entropy_on_full:
-            padded_messages[m] = messages[m, 1:]
+            padded_messages[m] = generated_messages[m, 1:]
 
     y = np.bincount(padded_messages.flatten().astype(np.int))
     return scipy.stats.entropy(y)
