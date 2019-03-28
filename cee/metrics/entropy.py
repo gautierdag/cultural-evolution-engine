@@ -15,7 +15,7 @@ def language_entropy(generated_messages):
     for m in range(generated_messages.shape[0]):
         run_entropy_on_full = True
         for t in range(1, generated_messages.shape[1]):
-            if messages[m][t] == eos_token:
+            if generated_messages[m][t] == eos_token:
                 padded_messages[m, : t - 1] = generated_messages[m, 1:t]
                 run_entropy_on_full = False
         if run_entropy_on_full:
