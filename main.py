@@ -8,12 +8,13 @@ import warnings
 
 from tensorboardX import SummaryWriter
 from datetime import datetime
-from model import Receiver, Sender, Trainer
 from utils import *
-from data.shapes import ShapesVocab, get_shapes_dataset, get_shapes_metadata
+from data.shapes import get_shapes_dataset, get_shapes_metadata
 
 from cee.population_utils import *
-from cee.metrics import representation_similarity_analysis, language_entropy
+
+
+from ShapesCEE import ShapesCEE
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -30,6 +31,9 @@ def parse_arguments(args):
         "--greedy",
         help="Use argmax at prediction time instead of sampling (default: False",
         action="store_true",
+    )
+    parser.add_argument(
+        "--run_folder", type=str, default="runs", help="Run folder path (default: runs)"
     )
     parser.add_argument(
         "--iterations",
@@ -122,105 +126,7 @@ def parse_arguments(args):
     return args
 
 
-def initialize_models(args, run_folder="runs/"):
-    """
-    Initializes args.population_size sender and receiver models
-    Args:
-        args (required): arguments obtained from argparse
-        run_folder (req): path of run folder to save models in
-    Returns:
-        filenames (dict): dictionary containing the filepaths of the senders and receivers
-    """
-    filenames = {"senders": {}, "receivers": {}}
-    create_folder_if_not_exists(run_folder + "/senders")
-    create_folder_if_not_exists(run_folder + "/receivers")
-
-    # Load Vocab
-    vocab = ShapesVocab(args.vocab_size)
-
-    for i in range(args.population_size):
-        sender = Sender(
-            args.vocab_size,
-            args.max_length,
-            vocab.bound_idx,
-            embedding_size=args.embedding_size,
-            hidden_size=args.hidden_size,
-            greedy=args.greedy,
-        )
-        receiver = Receiver(
-            args.vocab_size,
-            embedding_size=args.embedding_size,
-            hidden_size=args.hidden_size,
-        )
-        sender_file = "{}/senders/sender_{}.p".format(run_folder, i)
-        receiver_file = "{}/receivers/receiver_{}.p".format(run_folder, i)
-        torch.save(sender, sender_file)
-        torch.save(receiver, receiver_file)
-        filenames["senders"][sender_file] = {"avg_loss": 0, "avg_acc": 0, "age": 0}
-        filenames["receivers"][receiver_file] = {"avg_loss": 0, "avg_acc": 0, "age": 0}
-
-    return filenames
-
-
-def shapes_trainer(sender_name, receiver_name, batch):
-    """
-    Trains sender and receiver model for one batch
-    Args:
-        sender_name (path): path of sender model
-        receiver_name (path): path of receiver model
-        batch: batch from dataloader
-    Returns:
-        loss: loss from batch
-        acc: accuracy from batch
-    """
-    sender = torch.load(sender_name)
-    receiver = torch.load(receiver_name)
-
-    model = Trainer(sender, receiver)
-    model.to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
-
-    loss, acc = train_one_batch(model, batch, optimizer)
-
-    # Update receiver and sender files with new state
-    torch.save(model.sender, sender_name)
-    torch.save(model.receiver, receiver_name)
-
-    return loss, acc
-
-
-def evaluate_pair(sender_name, receiver_name, test_data):
-    """
-    Evaluates pair of sender/receiver on test data and returns avg loss/acc
-    and generated messages
-    Args:
-        sender_name (path): path of sender model
-        receiver_name (path): path of receiver model
-        test_data (dataloader): dataloader of data to evaluate on
-    Returns:
-        avg_loss (float): average loss over data
-        avg_acc (float): average accuracy over data
-        test_messages (tensor): generated messages from data
-    """
-    sender = torch.load(sender_name)
-    receiver = torch.load(receiver_name)
-    model = Trainer(sender, receiver)
-    model.to(device)
-    test_loss_meter, test_acc_meter, test_messages = evaluate(model, test_data)
-
-    return test_loss_meter.avg, test_acc_meter.avg, test_messages
-
-
-def evaluate_messages(messages):
-    metadata = get_shapes_metadata()
-    messages = messages.cpu().numpy()
-    rsa = representation_similarity_analysis(messages, metadata)
-    l_entropy = language_entropy(messages)
-
-    return rsa, l_entropy
-
-
-def cee(args):
+def main(args):
 
     args = parse_arguments(args)
     seed_torch(seed=args.seed)
@@ -235,9 +141,6 @@ def cee(args):
     # Save experiment params
     pickle.dump(args, open("{}/experiment_params.p".format(experiment_folder), "wb"))
 
-    # Generate population and save intial models
-    population_filenames = initialize_models(args, run_folder=experiment_folder)
-
     # Tensorboard tracker for evolution process
     timestamp = "/{:%m%d%H%M}".format(datetime.now())
     writer = SummaryWriter(log_dir=experiment_folder + "/" + timestamp)
@@ -246,47 +149,33 @@ def cee(args):
     train_data, valid_data, test_data = get_shapes_dataset(
         batch_size=args.batch_size, k=args.k, debug=args.debugging
     )
+    valid_meta_data = get_shapes_metadata(dataset="valid")
+
+    # Generate population and save intial models
+    shapes_cee = ShapesCEE(args, run_folder=experiment_folder)
 
     i = 0
     while i < args.iterations:
         for batch in train_data:
-            # Sampling from population
-            sender_name = sample_population(population_filenames["senders"])
-            receiver_name = sample_population(population_filenames["receivers"])
-            loss, acc = shapes_trainer(sender_name, receiver_name, batch)
-
+            shapes_cee.train_population(batch)
             if i % args.log_interval == 0:
-                if args.debugging:
-                    avg_loss, avg_acc, test_messages = evaluate_pair(
-                        sender_name, receiver_name, valid_data
-                    )
-                else:
-                    avg_loss, avg_acc, test_messages = evaluate_pair(
-                        sender_name, receiver_name, test_data
-                    )
-
-                print(
-                    "{0}/{1}\tTest Loss: {2:.3g}\tTest Acc: {3:.3g}".format(
-                        i, args.iterations, avg_loss, avg_acc
-                    )
+                avg_loss, avg_acc, rsa, l_entropy = shapes_cee.evaluate_population(
+                    valid_data, valid_meta_data
                 )
-                rsa, l_entropy = evaluate_messages(test_messages)
-
                 writer.add_scalar("rsa", rsa, i)
                 writer.add_scalar("language_entropy", l_entropy, i)
                 writer.add_scalar("avg_acc", avg_acc, i)
                 writer.add_scalar("avg_loss", avg_loss, i)
 
-                torch.save(
-                    test_messages, "{}/test_messages_{}.p".format(experiment_folder, i)
-                )
-
             if i % args.culling_interval == 0 and i > 0:
-                cull_population(population_filenames["senders"])
-                cull_population(population_filenames["receivers"])
-
+                # Cull senders
+                shapes_cee.cull_population(culling_rate=args.culling_rate)
+                # Cull receivers
+                shapes_cee.cull_population(
+                    receiver=True, culling_rate=args.culling_rate
+                )
             i += 1
 
 
 if __name__ == "__main__":
-    cee(sys.argv[1:])
+    main(sys.argv[1:])

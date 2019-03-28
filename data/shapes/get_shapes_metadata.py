@@ -13,11 +13,17 @@ def one_hot(a):
     return out
 
 
-def get_shapes_metadata():
+def get_shapes_metadata(dataset="test"):
     """
+    Args:
+        dataset (str, opt) from {"train", "valid", "test"}
     returns one hot encoding of metada - compressed version of true concepts
+    @TODO implement loading from file rather than loading each time
     """
-    test_meta = pickle.load(open(dir_path + "/balanced/test.metadata.p", "rb"))
+
+    test_meta = pickle.load(
+        open(dir_path + "/balanced/{}.metadata.p".format(dataset), "rb")
+    )
     compressed_test_images = np.zeros((len(test_meta), 5))
 
     for i, m in enumerate(test_meta):
