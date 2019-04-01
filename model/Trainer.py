@@ -11,6 +11,27 @@ class Trainer(nn.Module):
         self.sender = sender
         self.receiver = receiver
 
+    def _pad(self, messages, seq_lengths):
+        """
+        Pads the messages using the sequence length
+        and the eos token stored in sender
+        """
+        batch_size, max_len = messages.shape[0], messages.shape[1]
+
+        mask = torch.arange(max_len, device=device).expand(
+            len(seq_lengths), max_len
+        ) < seq_lengths.unsqueeze(1)
+
+        if self.training:
+            mask = mask.type(dtype=messages.dtype)
+            messages = messages * mask.unsqueeze(2)
+            # give full probability to eos tag (used as padding in this case)
+            messages[:, :, self.sender.eos_id] = 1.0
+        else:
+            # fill in the rest of message with eos
+            messages = messages.masked_fill_(mask == 0, self.sender.eos_id)
+        return messages
+
     def forward(self, target, distractors, tau=1.2):
         batch_size = target.shape[0]
 
@@ -18,6 +39,7 @@ class Trainer(nn.Module):
         distractors = [d.to(device) for d in distractors]
 
         messages, lengths = self.sender(tau, hidden_state=target)
+        messages = self._pad(messages, lengths)
         r_transform = self.receiver(messages)
 
         loss = 0
