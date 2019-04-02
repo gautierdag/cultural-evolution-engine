@@ -78,3 +78,12 @@ def get_shapes_dataset(batch_size=16, k=3, debug=False):
         generate_shapes_dataset()
 
     return get_dataloaders(batch_size=batch_size, k=k, debug=debug)
+
+
+def get_shapes_features(dataset="test"):
+    """
+    Returns numpy array with matching features
+    Args:
+        dataset (str) in {'train', 'valid', 'test'}
+    """
+    return np.load(dir_path + "/{}_features.npy".format(dataset))

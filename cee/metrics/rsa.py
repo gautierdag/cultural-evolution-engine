@@ -12,43 +12,72 @@ def one_hot(a):
     return out
 
 
-def encode_messages(messages):
-    encoded_messages = messages.copy()
-    eos_token = encoded_messages.max()
-    # pad
-    for m in range(encoded_messages.shape[0]):
-        for t in range(1, encoded_messages.shape[1]):
-            if encoded_messages[m][t] == eos_token:
-                encoded_messages[m, t:] = 0
-    # remove eos
-    encoded_messages = encoded_messages[:, 1:]
-
-    # one hot
-    encoded_messages = one_hot(encoded_messages)
-
-    return encoded_messages.reshape(encoded_messages.shape[0], -1)
-
-
-def representation_similarity_analysis(generated_messages, test_set, samples=5000):
+def representation_similarity_analysis(
+    test_images,
+    test_metadata,
+    generated_messages,
+    hidden_sender,
+    hidden_receiver,
+    samples=5000,
+    tre=False,
+):
     """
+    Calculates RSA scores of the two agents (ρS/R),
+    and of each agent with the input (ρS/I and ρR/I),
+    and Topological Similarity between metadata/generated messages
+    where S refers to Sender,R to Receiver,I to input.
     Args:
-        generated_messages: generated messages output from eval on test
         test_set: encoded test set metadata info describing the image
+        generated_messages: generated messages output from eval on test
+        hidden_sender: encoded representation in sender
+        hidden_receiver: encoded representation in receiver
+        samples (int, optional): default 5000 - number of pairs to sample
+        tre (bool, optional): default False - whether to also calculate pseudo-TRE
     """
-    # encode messages by taking padding into account and transforming to one hot
-    messages = encode_messages(generated_messages)
+    # one hot encode messages by taking padding into account and transforming to one hot
+    messages = one_hot(generated_messages)
+
     # this is needed since some samples might have been dropped during training to maintain batch_size
-    test_set = test_set[: len(messages)]
-    assert test_set.shape[0] == messages.shape[0]
+    test_images = test_images[: len(messages)]
+    test_metadata = test_metadata[: len(messages)]
 
-    sim_reals = np.zeros(samples)
-    sim_msgs = np.zeros(samples)
+    assert test_metadata.shape[0] == messages.shape[0]
+
+    sim_image_features = np.zeros(samples)
+    sim_metadata = np.zeros(samples)
+    sim_messages = np.zeros(samples)
+    sim_hidden_sender = np.zeros(samples)
+    sim_hidden_receiver = np.zeros(samples)
+
     for i in range(samples):
-        rnd = np.random.choice(len(test_set), 2, replace=False)
+        rnd = np.random.choice(len(test_metadata), 2, replace=False)
         s1, s2 = rnd[0], rnd[1]
-        sim_reals[i] = scipy.spatial.distance.cosine(messages[s1], messages[s2])
-        sim_msgs[i] = scipy.spatial.distance.cosine(test_set[s1], test_set[s2])
 
-    rsa = scipy.stats.pearsonr(sim_reals, sim_msgs)[0]
+        sim_image_features[i] = scipy.spatial.distance.cosine(
+            test_images[s1], test_images[s2]
+        )
+        sim_metadata[i] = scipy.spatial.distance.cosine(
+            test_metadata[s1], test_metadata[s2]
+        )
 
-    return rsa
+        sim_messages[i] = scipy.spatial.distance.cosine(
+            messages[s1].flatten(), messages[s2].flatten()
+        )
+        sim_hidden_sender[i] = scipy.spatial.distance.cosine(
+            hidden_sender[s1].flatten(), hidden_sender[s2].flatten()
+        )
+        sim_hidden_receiver[i] = scipy.spatial.distance.cosine(
+            hidden_receiver[s1].flatten(), hidden_receiver[s2].flatten()
+        )
+
+    rsa_sr = scipy.stats.pearsonr(sim_hidden_sender, sim_hidden_receiver)[0]
+    rsa_si = scipy.stats.pearsonr(sim_hidden_sender, sim_image_features)[0]
+    rsa_ri = scipy.stats.pearsonr(sim_hidden_receiver, sim_image_features)[0]
+    topological_similarity = scipy.stats.pearsonr(sim_messages, sim_metadata)[0]
+
+    if tre:
+        pseudo_tre = np.linalg.norm(sim_metadata - sim_messages, ord=1)
+        return rsa_sr, rsa_si, rsa_ri, topological_similarity, pseudo_tre
+    else:
+        return rsa_sr, rsa_si, rsa_ri, topological_similarity
+

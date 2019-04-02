@@ -181,4 +181,4 @@ class Sender(nn.Module):
                 is_discrete=not self.training,
             )
 
-        return (torch.stack(output, dim=1), seq_lengths)
+        return (torch.stack(output, dim=1), seq_lengths, emb)

@@ -39,9 +39,9 @@ class Trainer(nn.Module):
         target = target.to(device)
         distractors = [d.to(device) for d in distractors]
 
-        messages, lengths = self.sender(tau, hidden_state=target)
+        messages, lengths, h_s = self.sender(tau, hidden_state=target)
         messages = self._pad(messages, lengths)
-        r_transform = self.receiver(messages)
+        r_transform, h_r = self.receiver(messages)
 
         loss = 0
 
@@ -68,4 +68,7 @@ class Trainer(nn.Module):
         accuracy = max_idx == 0
         accuracy = accuracy.to(dtype=torch.float32)
 
-        return torch.mean(loss), torch.mean(accuracy), messages
+        if self.training:
+            return torch.mean(loss), torch.mean(accuracy), messages
+        else:
+            return torch.mean(loss), torch.mean(accuracy), messages, h_s, h_r

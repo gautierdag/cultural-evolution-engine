@@ -41,4 +41,4 @@ class Receiver(nn.Module):
 
         _, (h_last, _) = self.lstm(emb)
 
-        return h_last
+        return h_last, emb

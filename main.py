@@ -9,7 +9,7 @@ import warnings
 from tensorboardX import SummaryWriter
 from datetime import datetime
 from utils import *
-from data.shapes import get_shapes_dataset, get_shapes_metadata
+from data.shapes import get_shapes_dataset, get_shapes_metadata, get_shapes_features
 
 from ShapesCEE import ShapesCEE
 
@@ -147,6 +147,7 @@ def main(args):
         batch_size=args.batch_size, k=args.k, debug=args.debugging
     )
     valid_meta_data = get_shapes_metadata(dataset="valid")
+    valid_features = get_shapes_features(dataset="valid")
 
     # Generate population and save intial models
     shapes_cee = ShapesCEE(args, run_folder=experiment_folder)
@@ -156,16 +157,28 @@ def main(args):
         for batch in train_data:
             shapes_cee.train_population(batch)
             if i % args.log_interval == 0:
-                avg_loss, avg_acc, rsa, l_entropy = shapes_cee.evaluate_population(
-                    valid_data, valid_meta_data
+
+                avg_loss, avg_acc, rsa_sr, rsa_si, rsa_ri, topological_similarity, l_entropy = shapes_cee.evaluate_population(
+                    valid_data, valid_meta_data, valid_features
                 )
-                writer.add_scalar("rsa", rsa, i)
+                writer.add_scalar("topological_similarity", topological_similarity, i)
+                writer.add_scalars(
+                    "rsa", {"pS/R": rsa_sr, "pS/I": rsa_si, "pR/I": rsa_ri}, i
+                )
                 writer.add_scalar("language_entropy", l_entropy, i)
                 writer.add_scalar("avg_acc", avg_acc, i)
                 writer.add_scalar("avg_loss", avg_loss, i)
                 print(
-                    "{0}/{1}\tAvg Loss: {2:.3g}\tAvg Acc: {3:.3g}\tAvg Entropy: {4:.3g}\tAvg RSA: {5:.3g}".format(
-                        i, args.iterations, avg_loss, avg_acc, l_entropy, rsa
+                    "{0}/{1}\tAvg Loss: {2:.3g}\tAvg Acc: {3:.3g}\tAvg Entropy: {4:.3g}\tAvg RSA \
+                     pS/R: {5:.3g}\tAvg RSA pS/I: {6:.3g}\tAvg RSA pR/I: {7:.3g}".format(
+                        i,
+                        args.iterations,
+                        avg_loss,
+                        avg_acc,
+                        l_entropy,
+                        rsa_sr,
+                        rsa_si,
+                        rsa_ri,
                     )
                 )
 

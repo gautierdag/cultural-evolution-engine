@@ -8,7 +8,7 @@ class BaseAgent(object):
         self.loss = 0.0
         self.acc = 0.0
 
-        # Arguments used to generate
+        # Arguments used to generate agent
         self.args = args
 
     def increment_age(self):
