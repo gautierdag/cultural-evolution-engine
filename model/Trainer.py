@@ -18,8 +18,6 @@ class Trainer(nn.Module):
         """
         batch_size, max_len = messages.shape[0], messages.shape[1]
 
-        m = messages.clone()
-
         mask = torch.arange(max_len, device=device).expand(
             len(seq_lengths), max_len
         ) < seq_lengths.unsqueeze(1)
