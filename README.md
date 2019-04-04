@@ -32,3 +32,4 @@ The cultural evolution engine consists of two main bases classes: `BaseAgent` an
 Together they make up the Cultural Evolution Engine. 
 
 Additionally standard metrics with which to evaluate messages and language are also implemented in the engine. Currently Representational Similarity Analysis (RSA) and the language Entropy.
+ 
