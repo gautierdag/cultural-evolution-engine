@@ -113,7 +113,7 @@ class Sender(nn.Module):
 
     def forward(self, tau, hidden_state=None):
         """
-        Performs a forward pass. If training, use Gumbel Softmax (hard) for sampling, else use 
+        Performs a forward pass. If training, use Gumbel Softmax (hard) for sampling, else use
         discrete sampling.
         """
 

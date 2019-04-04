@@ -33,6 +33,7 @@ def representation_similarity_analysis(
         hidden_receiver: encoded representation in receiver
         samples (int, optional): default 5000 - number of pairs to sample
         tre (bool, optional): default False - whether to also calculate pseudo-TRE
+    @TODO move to metrics repo
     """
     # one hot encode messages by taking padding into account and transforming to one hot
     messages = one_hot(generated_messages)
