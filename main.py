@@ -91,7 +91,7 @@ def parse_arguments(args):
         metavar="N",
         help="Size of vocabulary (default: 10)",
     )
-    # Cultural evolution parameters
+    # Simple Cultural evolution parameters
     parser.add_argument(
         "--population-size",
         type=int,
@@ -113,12 +113,22 @@ def parse_arguments(args):
         metavar="N",
         help="Percentage of population culled",
     )
+    # Biological evolution
+    parser.add_argument(
+        "--evolution",
+        help="Use evolution instead of random re-init (default: True)",
+        action="store_true",
+        default=True,
+    )
 
     args = parser.parse_args(args)
 
     if args.debugging:
         args.epochs = 10
         args.max_length = 5
+
+    if args.evolution:
+        args.cell_type = "darts"
 
     return args
 

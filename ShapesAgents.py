@@ -6,8 +6,13 @@ import torch
 
 
 class SenderAgent(BaseAgent):
-    def __init__(self, filename, args):
+    def __init__(self, filename, args, genotype=None):
+        if args.cell_type == "darts" and genotype is None:
+            raise ValueError("Expected genotype in Sender with option 'darts'")
+
         super().__init__(filename, args)
+        self.genotype = genotype
+
         vocab = ShapesVocab(args.vocab_size)
         sender = Sender(
             args.vocab_size,
@@ -16,6 +21,8 @@ class SenderAgent(BaseAgent):
             embedding_size=args.embedding_size,
             hidden_size=args.hidden_size,
             greedy=args.greedy,
+            cell_type=args.cell_type,
+            genotype=genotype,
         )
         torch.save(sender, filename)
 

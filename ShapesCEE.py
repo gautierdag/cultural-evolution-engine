@@ -2,7 +2,7 @@ from cee import BaseCEE
 from cee.metrics import representation_similarity_analysis, language_entropy
 
 from ShapesAgents import SenderAgent, ReceiverAgent
-from model import Trainer
+from model import Trainer, generate_genotype
 from utils import create_folder_if_not_exists, train_one_batch, evaluate
 import torch
 
@@ -23,9 +23,13 @@ class ShapesCEE(BaseCEE):
         create_folder_if_not_exists(self.run_folder + "/senders")
         create_folder_if_not_exists(self.run_folder + "/receivers")
         for i in range(params.population_size):
-
+            sender_genotype = None
+            if params.evolution:
+                sender_genotype = generate_genotype()
             sender_filename = "{}/senders/sender_{}.p".format(self.run_folder, i)
-            self.senders.append(SenderAgent(sender_filename, params))
+            self.senders.append(
+                SenderAgent(sender_filename, params, genotype=sender_genotype)
+            )
 
             receiver_filename = "{}/receivers/receiver_{}.p".format(self.run_folder, i)
             self.receivers.append(ReceiverAgent(receiver_filename, params))
@@ -33,6 +37,7 @@ class ShapesCEE(BaseCEE):
     def train_population(self, batch):
 
         sender = self.sample_population()
+        print(sender.genotype)
         receiver = self.sample_population(receiver=True)
         sender_model = sender.get_model()
         receiver_model = receiver.get_model()

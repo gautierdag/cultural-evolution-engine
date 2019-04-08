@@ -18,8 +18,8 @@ class Sender(nn.Module):
         embedding_size=256,
         hidden_size=512,
         greedy=False,
-        cell_type="darts",
-        **kwargs
+        cell_type="lstm",
+        genotype=None,
     ):
         super().__init__()
         self.vocab_size = vocab_size
@@ -38,7 +38,7 @@ class Sender(nn.Module):
         if cell_type == "lstm":
             self.rnn = nn.LSTMCell(embedding_size, hidden_size)
         elif cell_type == "darts":
-            self.rnn = DARTSCell(embedding_size, hidden_size, kwargs)
+            self.rnn = DARTSCell(embedding_size, hidden_size, genotype)
 
         self.embedding = nn.Parameter(
             torch.empty((vocab_size, embedding_size), dtype=torch.float32)

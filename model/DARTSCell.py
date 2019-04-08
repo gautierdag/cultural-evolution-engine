@@ -1,14 +1,13 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .genotypes import DARTS
 
 
 class DARTSCell(nn.Module):
     def __init__(self, ninp, nhid, genotype, init_range=0.04):
         super(DARTSCell, self).__init__()
         self.nhid = nhid
-        self.genotype = DARTS
+        self.genotype = genotype
 
         # In genotype is None when doing arch search
         steps = len(self.genotype.recurrent)
