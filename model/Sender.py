@@ -3,6 +3,7 @@ import torch.nn as nn
 from torch.nn import functional as F
 from torch.distributions.categorical import Categorical
 from .gumbel import gumbel_softmax
+from .DARTSCell import DARTSCell
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -17,6 +18,8 @@ class Sender(nn.Module):
         embedding_size=256,
         hidden_size=512,
         greedy=False,
+        cell_type="darts",
+        **kwargs
     ):
         super().__init__()
         self.vocab_size = vocab_size
@@ -32,7 +35,11 @@ class Sender(nn.Module):
         self.hidden_size = hidden_size
         self.greedy = greedy
 
-        self.rnn = nn.LSTMCell(embedding_size, hidden_size)
+        if cell_type == "lstm":
+            self.rnn = nn.LSTMCell(embedding_size, hidden_size)
+        elif cell_type == "darts":
+            self.rnn = DARTSCell(embedding_size, hidden_size, kwargs)
+
         self.embedding = nn.Parameter(
             torch.empty((vocab_size, embedding_size), dtype=torch.float32)
         )
@@ -48,15 +55,16 @@ class Sender(nn.Module):
         nn.init.constant_(self.linear_out.weight, 0)
         nn.init.constant_(self.linear_out.bias, 0)
 
-        nn.init.xavier_uniform_(self.rnn.weight_ih)
-        nn.init.orthogonal_(self.rnn.weight_hh)
-        nn.init.constant_(self.rnn.bias_ih, val=0)
-        # # cuDNN bias order: https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnRNNMode_t
-        # # add some positive bias for the forget gates [b_i, b_f, b_o, b_g] = [0, 1, 0, 0]
-        nn.init.constant_(self.rnn.bias_hh, val=0)
-        nn.init.constant_(
-            self.rnn.bias_hh[self.hidden_size : 2 * self.hidden_size], val=1
-        )
+        if type(self.rnn) is nn.LSTMCell:
+            nn.init.xavier_uniform_(self.rnn.weight_ih)
+            nn.init.orthogonal_(self.rnn.weight_hh)
+            nn.init.constant_(self.rnn.bias_ih, val=0)
+            # # cuDNN bias order: https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnRNNMode_t
+            # # add some positive bias for the forget gates [b_i, b_f, b_o, b_g] = [0, 1, 0, 0]
+            nn.init.constant_(self.rnn.bias_hh, val=0)
+            nn.init.constant_(
+                self.rnn.bias_hh[self.hidden_size : 2 * self.hidden_size], val=1
+            )
 
     def _init_state(self, hidden_state, rnn_type):
         """
@@ -115,6 +123,7 @@ class Sender(nn.Module):
         """
         Performs a forward pass. If training, use Gumbel Softmax (hard) for sampling, else use
         discrete sampling.
+        Hidden state here represents the encoded image - initializes the RNN from it.
         """
 
         state, batch_size = self._init_state(hidden_state, type(self.rnn))
