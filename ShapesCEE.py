@@ -174,6 +174,7 @@ class ShapesCEE(BaseCEE):
                                             default: 0.2
             mode (string, optional): argument for sampling
         """
+        print("Mutating Population")
         self.generation += 1
 
         pop_size = len(self.receivers) if receiver else len(self.senders)

@@ -193,12 +193,18 @@ def main(args):
                 )
 
             if i % args.culling_interval == 0 and i > 0:
-                # Cull senders
-                shapes_cee.cull_population(culling_rate=args.culling_rate)
-                # Cull receivers
-                shapes_cee.cull_population(
-                    receiver=True, culling_rate=args.culling_rate
-                )
+                if args.evolution:
+                    shapes_cee.mutate_population(culling_rate=args.culling_rate)
+                    shapes_cee.mutate_population(
+                        culling_rate=args.culling_rate, receiver=True
+                    )
+                else:
+                    # Cull senders
+                    shapes_cee.cull_population(culling_rate=args.culling_rate)
+                    # Cull receivers
+                    shapes_cee.cull_population(
+                        receiver=True, culling_rate=args.culling_rate
+                    )
             i += 1
 
 

@@ -8,7 +8,7 @@ import torch
 
 from tensorboardX import SummaryWriter
 from datetime import datetime
-from model import Receiver, Sender, Trainer
+from model import Receiver, Sender, Trainer, DARTS
 from utils import *
 from data.shapes import ShapesVocab, get_shapes_dataset
 
@@ -80,6 +80,12 @@ def parse_arguments(args):
         metavar="N",
         help="Size of vocabulary (default: 10)",
     )
+    parser.add_argument(
+        "--darts",
+        help="Use darts instead of random LSTMCell (default: False)",
+        action="store_true",
+        default=False,
+    )
 
     args = parser.parse_args(args)
 
@@ -110,6 +116,12 @@ def baseline(args):
             model_name, args.vocab_size, args.max_length
         )
     )
+    cell_type = "lstm"
+    genotype = {}
+    if args.darts:
+        cell_type = "darts"
+        genotype = DARTS
+
     sender = Sender(
         args.vocab_size,
         args.max_length,
@@ -117,11 +129,15 @@ def baseline(args):
         embedding_size=args.embedding_size,
         hidden_size=args.hidden_size,
         greedy=args.greedy,
+        cell_type=cell_type,
+        genotype=genotype,
     )
     receiver = Receiver(
         args.vocab_size,
         embedding_size=args.embedding_size,
         hidden_size=args.hidden_size,
+        cell_type=cell_type,
+        genotype=genotype,
     )
     print(sender)
     print(receiver)
