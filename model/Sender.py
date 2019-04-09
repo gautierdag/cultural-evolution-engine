@@ -39,6 +39,10 @@ class Sender(nn.Module):
             self.rnn = nn.LSTMCell(embedding_size, hidden_size)
         elif cell_type == "darts":
             self.rnn = DARTSCell(embedding_size, hidden_size, genotype)
+        else:
+            raise ValueError(
+                "Sender case with cell_type '{}' is undefined".format(cell_type)
+            )
 
         self.embedding = nn.Parameter(
             torch.empty((vocab_size, embedding_size), dtype=torch.float32)
@@ -153,12 +157,14 @@ class Sender(nn.Module):
             torch.ones([batch_size], dtype=torch.int64, device=device) * initial_length
         )
 
+        embeds = []  # keep track of the embedded sequence
         for i in range(self.output_len):
             if self.training:
                 emb = torch.matmul(output[-1], self.embedding)
             else:
                 emb = self.embedding[output[-1]]
 
+            embeds.append(emb)
             state = self.rnn(emb, state)
 
             if type(self.rnn) is nn.LSTMCell:
@@ -190,4 +196,4 @@ class Sender(nn.Module):
                 is_discrete=not self.training,
             )
 
-        return (torch.stack(output, dim=1), seq_lengths, emb)
+        return (torch.stack(output, dim=1), seq_lengths, torch.stack(embeds, dim=1))

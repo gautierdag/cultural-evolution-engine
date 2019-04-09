@@ -59,7 +59,7 @@ def mutate_genotype(genotype, edit_steps=1):
     return genotype
 
 
-def plot_genotype(genotype, filename):
+def plot_genotype(genotype, filename, view=False):
     g = Digraph(
         format="pdf",
         edge_attr=dict(fontsize="20", fontname="times"),
@@ -94,7 +94,7 @@ def plot_genotype(genotype, filename):
     for i in range(1, steps + 1):
         g.edge(str(i), "h_{t}", fillcolor="gray")
 
-    g.render(filename, view=True)
+    g.render(filename, view=view)
 
 
 if __name__ == "__main__":

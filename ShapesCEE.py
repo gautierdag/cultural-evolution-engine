@@ -2,7 +2,7 @@ from cee import BaseCEE
 from cee.metrics import representation_similarity_analysis, language_entropy
 
 from ShapesAgents import SenderAgent, ReceiverAgent
-from model import Trainer, generate_genotype
+from model import Trainer, generate_genotype, mutate_genotype
 from utils import create_folder_if_not_exists, train_one_batch, evaluate
 import torch
 
@@ -22,22 +22,32 @@ class ShapesCEE(BaseCEE):
         """
         create_folder_if_not_exists(self.run_folder + "/senders")
         create_folder_if_not_exists(self.run_folder + "/receivers")
+
+        if params.evolution:
+            create_folder_if_not_exists(self.run_folder + "/senders_genotype")
+            create_folder_if_not_exists(self.run_folder + "/receivers_genotype")
+
         for i in range(params.population_size):
             sender_genotype = None
+            receiver_genotype = None
             if params.evolution:
                 sender_genotype = generate_genotype()
-            sender_filename = "{}/senders/sender_{}.p".format(self.run_folder, i)
-            self.senders.append(
-                SenderAgent(sender_filename, params, genotype=sender_genotype)
-            )
+                receiver_genotype = generate_genotype()
 
-            receiver_filename = "{}/receivers/receiver_{}.p".format(self.run_folder, i)
-            self.receivers.append(ReceiverAgent(receiver_filename, params))
+            self.senders.append(
+                SenderAgent(
+                    self.run_folder, params, genotype=sender_genotype, agent_id=i
+                )
+            )
+            self.receivers.append(
+                ReceiverAgent(
+                    self.run_folder, params, genotype=receiver_genotype, agent_id=i
+                )
+            )
 
     def train_population(self, batch):
 
         sender = self.sample_population()
-        print(sender.genotype)
         receiver = self.sample_population(receiver=True)
         sender_model = sender.get_model()
         receiver_model = receiver.get_model()
@@ -155,3 +165,22 @@ class ShapesCEE(BaseCEE):
         l_entropy = language_entropy(messages)
 
         return rsa_sr, rsa_si, rsa_ri, topological_similarity, l_entropy
+
+    def mutate_population(self, receiver=False, culling_rate=0.2, mode="random"):
+        """
+        mutates Population according to culling rate and mode
+        Args:
+            culling_rate (float, optional): percentage of the population to mutate
+                                            default: 0.2
+            mode (string, optional): argument for sampling
+        """
+        self.generation += 1
+
+        pop_size = len(self.receivers) if receiver else len(self.senders)
+        c = max(1, int(culling_rate * pop_size))
+        for _ in range(c):
+            sampled_agent = self.sample_population(receiver=receiver, mode=mode)
+            new_genotype = mutate_genotype(
+                sampled_agent.genotype, generation=self.generation
+            )
+            sampled_agent.mutate(new_genotype, generation=self.generation)

@@ -104,14 +104,14 @@ def parse_arguments(args):
         type=int,
         default=5000,
         metavar="N",
-        help="Number of sampling steps between culling (default: 5k)",
+        help="Number of sampling steps between culling/mutate (default: 5k)",
     )
     parser.add_argument(
         "--culling-rate",
         type=float,
         default=0.2,
         metavar="N",
-        help="Percentage of population culled",
+        help="Percentage of population culled/mutated",
     )
     # Biological evolution
     parser.add_argument(

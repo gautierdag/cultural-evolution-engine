@@ -6,6 +6,7 @@ class BaseCEE(object):
         self.senders = []
         self.receivers = []
         self.params = params
+        self.generation = 0
         self.initialize_population(params)
 
     def initialize_population(self, params: dict):
@@ -41,6 +42,8 @@ class BaseCEE(object):
                                             default: 0.2
             mode (string, optional): argument for sampling
         """
+        self.generation += 1
+
         pop_size = len(self.receivers) if receiver else len(self.senders)
         c = max(1, int(culling_rate * pop_size))
         for _ in range(c):
