@@ -63,8 +63,8 @@ class Receiver(nn.Module):
             h = (h, c)
 
         # make sequence_length be first dim
-        emb = emb.transpose(0, 1)
-        for w in emb:
+        seq_iterator = emb.transpose(0, 1)
+        for w in seq_iterator:
             h = self.rnn(w, h)
 
         if self.cell_type == "lstm":
