@@ -39,13 +39,6 @@ def parse_arguments(args):
         "--seed", type=int, default=42, metavar="S", help="random seed (default: 42)"
     )
     parser.add_argument(
-        "--hidden-size",
-        type=int,
-        default=512,
-        metavar="N",
-        help="hidden size for RNN encoder (default: 512)",
-    )
-    parser.add_argument(
         "--embedding-size",
         type=int,
         default=256,
@@ -127,7 +120,6 @@ def baseline(args):
         args.max_length,
         vocab.bound_idx,
         embedding_size=args.embedding_size,
-        hidden_size=args.hidden_size,
         greedy=args.greedy,
         cell_type=cell_type,
         genotype=genotype,
@@ -135,7 +127,6 @@ def baseline(args):
     receiver = Receiver(
         args.vocab_size,
         embedding_size=args.embedding_size,
-        hidden_size=args.hidden_size,
         cell_type=cell_type,
         genotype=genotype,
     )

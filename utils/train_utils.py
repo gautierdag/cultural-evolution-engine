@@ -144,7 +144,6 @@ def get_filename_from_baseline_params(params):
     """
     name = "model"
     name += "_e_{}".format(params.embedding_size)
-    name += "_h_{}".format(params.hidden_size)
     name += "_max_len_{}".format(params.max_length)
     name += "_k_{}".format(params.k)
     name += "_vocab_{}".format(params.vocab_size)

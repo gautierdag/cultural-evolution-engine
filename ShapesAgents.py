@@ -25,7 +25,6 @@ class SenderAgent(BaseAgent):
             args.max_length,
             vocab.bound_idx,
             embedding_size=args.embedding_size,
-            hidden_size=args.hidden_size,
             greedy=args.greedy,
             cell_type=args.cell_type,
             genotype=genotype,
@@ -49,7 +48,6 @@ class SenderAgent(BaseAgent):
             self.args.max_length,
             vocab.bound_idx,
             embedding_size=self.args.embedding_size,
-            hidden_size=self.args.hidden_size,
             greedy=self.args.greedy,
             cell_type=self.args.cell_type,
             genotype=new_genotype,
@@ -81,7 +79,6 @@ class ReceiverAgent(BaseAgent):
         receiver = Receiver(
             args.vocab_size,
             embedding_size=args.embedding_size,
-            hidden_size=args.hidden_size,
             cell_type=args.cell_type,
             genotype=genotype,
         )
@@ -101,7 +98,6 @@ class ReceiverAgent(BaseAgent):
         model = Receiver(
             self.args.vocab_size,
             embedding_size=self.args.embedding_size,
-            hidden_size=self.args.hidden_size,
             cell_type=self.args.cell_type,
             genotype=genotype,
         )
