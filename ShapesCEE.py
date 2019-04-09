@@ -166,7 +166,34 @@ class ShapesCEE(BaseCEE):
 
         return rsa_sr, rsa_si, rsa_ri, topological_similarity, l_entropy
 
-    def mutate_population(self, receiver=False, culling_rate=0.2, mode="random"):
+    def sort_agents(self, receiver=False):
+        pop_size = len(self.receivers) if receiver else len(self.senders)
+
+        agents = []
+        values = []
+
+        for a in range(pop_size):
+            if receiver:
+                # model has not been run
+                if self.receivers[a].age < 1:
+                    avg_loss_over_time = 1e6  # high value for loss
+                else:
+                    avg_loss_over_time = self.receivers[a].loss / self.receivers[a].age
+            else:
+                # model has not been run
+                if self.senders[a].age < 1:
+                    avg_loss_over_time = 1e6  # high value for loss
+                else:
+                    avg_loss_over_time = self.senders[a].loss / self.senders[a].age
+
+            agents.append(a)
+            values.append(avg_loss_over_time)
+
+        values, agents = zip(*sorted(zip(values, agents)))
+
+        return list(agents)
+
+    def mutate_population(self, receiver=False, culling_rate=0.2, mode="best"):
         """
         mutates Population according to culling rate and mode
         Args:
@@ -178,10 +205,31 @@ class ShapesCEE(BaseCEE):
         self.generation += 1
 
         pop_size = len(self.receivers) if receiver else len(self.senders)
+
         c = max(1, int(culling_rate * pop_size))
-        for _ in range(c):
-            sampled_agent = self.sample_population(receiver=receiver, mode=mode)
-            new_genotype = mutate_genotype(
-                sampled_agent.genotype, generation=self.generation
-            )
-            sampled_agent.mutate(new_genotype, generation=self.generation)
+
+        # picks random networks to mutate
+        if mode == "random":
+            for _ in range(c):
+                sampled_agent = self.sample_population(receiver=receiver, mode=mode)
+                new_genotype = mutate_genotype(
+                    sampled_agent.genotype, generation=self.generation
+                )
+                sampled_agent.mutate(new_genotype, generation=self.generation)
+
+        # mutates best agent to make child and place this child instead of worst agent
+        if mode == "best":
+            agents = self.sort_agents(receiver=receiver)
+
+            if receiver:
+                best_agent = self.receivers[agents[a]]
+                worst_agent = self.receivers[agents[-1]]
+            else:
+                best_agent = self.senders[agents[a]]
+                worst_agent = self.senders[agents[-1]]
+
+                new_genotype = mutate_genotype(
+                    best_agent.genotype, generation=self.generation
+                )
+
+                worst_agent.mutate(new_genotype, generation=self.generation)
