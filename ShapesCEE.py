@@ -209,9 +209,7 @@ class ShapesCEE(BaseCEE):
         if mode == "random":
             for _ in range(c):
                 sampled_agent = self.sample_population(receiver=receiver, mode=mode)
-                new_genotype = mutate_genotype(
-                    sampled_agent.genotype, generation=self.generation
-                )
+                new_genotype = mutate_genotype(sampled_agent.genotype)
                 sampled_agent.mutate(new_genotype, generation=self.generation)
 
         # mutates best agent to make child and place this child instead of worst agent
@@ -221,8 +219,6 @@ class ShapesCEE(BaseCEE):
             # replace worst c models with mutated version of best
             for w in range(c):
                 worst_agent = getattr(self, att)[agents[-(w - 1)]]
-                new_genotype = mutate_genotype(
-                    best_agent.genotype, generation=self.generation
-                )
+                new_genotype = mutate_genotype(best_agent.genotype)
                 worst_agent.mutate(new_genotype, generation=self.generation)
 
