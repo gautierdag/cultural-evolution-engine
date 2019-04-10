@@ -2,11 +2,12 @@ from graphviz import Digraph
 from collections import namedtuple
 import random
 
+# Original darts genotype
+# Taken from: https://github.com/quark0/darts/blob/master/rnn/genotypes.py
 Genotype = namedtuple("Genotype", "recurrent concat")
 
 PRIMITIVES = ["tanh", "relu", "sigmoid", "identity"]
-STEPS = 8
-CONCAT = 8
+MAX_NODES = 8
 
 DARTS = Genotype(
     recurrent=[
@@ -22,7 +23,7 @@ DARTS = Genotype(
     concat=range(1, 9),
 )
 
-
+# Evolution Specific functions
 # convert_genotype_to_bit_encoding?
 # convert_genotype to tree ?
 def generate_genotype(num_nodes=8):
@@ -37,14 +38,18 @@ def generate_genotype(num_nodes=8):
     return Genotype(recurrent=recurrent, concat=range(1, num_nodes + 1))
 
 
-def mutate_genotype(genotype, edit_steps=1):
+def mutate_genotype(genotype, edit_steps=1, allow_add_node=True):
     """
     simplest mutation possible - edits a random single thing
+    if allow_add_node - might randomly add node in mutation if num_nodes < MAX_NODES
     """
+    number_of_nodes = len(genotype.recurrent)
+    allow_add_node = allow_add_node and (number_of_nodes < MAX_NODES)
     for s in range(edit_steps):
-        node = random.randint(0, len(genotype.recurrent) - 1)
+
         # mutate either connection or primitive
-        mutation_type = random.randint(0, 1)
+        mutation_type = random.randint(0, 1 + allow_add_node)
+        node = random.randint(0, number_of_nodes - 1 + allow_add_node)
 
         # mutate primitive
         if mutation_type == 0:
@@ -55,6 +60,12 @@ def mutate_genotype(genotype, edit_steps=1):
         if mutation_type == 1:
             r = random.randint(0, node)
             genotype.recurrent[node] = (genotype.recurrent[node][0], r)
+
+        # Add Node
+        if mutation_type == 2:
+            p = random.choice(PRIMITIVES)
+            r = random.randint(0, node)
+            genotype.recurrent.append((p, r))
 
     return genotype
 

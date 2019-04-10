@@ -31,8 +31,8 @@ class ShapesCEE(BaseCEE):
             sender_genotype = None
             receiver_genotype = None
             if params.evolution:
-                sender_genotype = generate_genotype()
-                receiver_genotype = generate_genotype()
+                sender_genotype = generate_genotype(num_nodes=params.init_nodes)
+                receiver_genotype = generate_genotype(num_nodes=params.init_nodes)
 
             self.senders.append(
                 SenderAgent(
@@ -167,24 +167,20 @@ class ShapesCEE(BaseCEE):
         return rsa_sr, rsa_si, rsa_ri, topological_similarity, l_entropy
 
     def sort_agents(self, receiver=False):
-        pop_size = len(self.receivers) if receiver else len(self.senders)
+        att = "receivers" if receiver else "senders"
+        pop_size = len(getattr(self, att))
 
         agents = []
         values = []
 
         for a in range(pop_size):
-            if receiver:
-                # model has not been run
-                if self.receivers[a].age < 1:
-                    avg_loss_over_time = 1e6  # high value for loss
-                else:
-                    avg_loss_over_time = self.receivers[a].loss / self.receivers[a].age
+            # model has not been run
+            if getattr(self, att)[a].age < 1:
+                avg_loss_over_time = 1e6  # high value for loss
             else:
-                # model has not been run
-                if self.senders[a].age < 1:
-                    avg_loss_over_time = 1e6  # high value for loss
-                else:
-                    avg_loss_over_time = self.senders[a].loss / self.senders[a].age
+                avg_loss_over_time = (
+                    getattr(self, att)[a].loss / getattr(self, att)[a].age
+                )
 
             agents.append(a)
             values.append(avg_loss_over_time)
@@ -197,14 +193,15 @@ class ShapesCEE(BaseCEE):
         """
         mutates Population according to culling rate and mode
         Args:
-            culling_rate (float, optional): percentage of the population to mutate
+            culling_rate (float, optional): percentage of the population to replace
                                             default: 0.2
             mode (string, optional): argument for sampling
         """
         print("Mutating Population")
         self.generation += 1
 
-        pop_size = len(self.receivers) if receiver else len(self.senders)
+        att = "receivers" if receiver else "senders"
+        pop_size = len(getattr(self, att))
 
         c = max(1, int(culling_rate * pop_size))
 
@@ -220,16 +217,12 @@ class ShapesCEE(BaseCEE):
         # mutates best agent to make child and place this child instead of worst agent
         if mode == "best":
             agents = self.sort_agents(receiver=receiver)
-
-            if receiver:
-                best_agent = self.receivers[agents[a]]
-                worst_agent = self.receivers[agents[-1]]
-            else:
-                best_agent = self.senders[agents[a]]
-                worst_agent = self.senders[agents[-1]]
-
+            best_agent = getattr(self, att)[agents[0]]
+            # replace worst c models with mutated version of best
+            for w in range(c):
+                worst_agent = getattr(self, att)[agents[-(w - 1)]]
                 new_genotype = mutate_genotype(
                     best_agent.genotype, generation=self.generation
                 )
-
                 worst_agent.mutate(new_genotype, generation=self.generation)
+

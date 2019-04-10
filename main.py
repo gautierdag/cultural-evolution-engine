@@ -113,11 +113,20 @@ def parse_arguments(args):
         action="store_true",
         default=True,
     )
+    parser.add_argument(
+        "--init-nodes",
+        type=int,
+        default=1,
+        metavar="N",
+        help="Initial number of nodes in DARTs cell (default: 1)",
+    )
 
     args = parser.parse_args(args)
 
     if args.debugging:
-        args.epochs = 10
+        args.iterations = 10000
+        args.culling_interval = 2000
+        args.log_interval = 1000
         args.max_length = 5
 
     if args.evolution:
