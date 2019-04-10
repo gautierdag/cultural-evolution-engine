@@ -8,7 +8,7 @@ import torch
 
 from tensorboardX import SummaryWriter
 from datetime import datetime
-from model import Receiver, Sender, Trainer, DARTS
+from model import Receiver, Sender, Trainer, DARTS, generate_genotype
 from utils import *
 from data.shapes import ShapesVocab, get_shapes_dataset
 
@@ -79,6 +79,19 @@ def parse_arguments(args):
         action="store_true",
         default=False,
     )
+    parser.add_argument(
+        "--random-darts",
+        help="Use random architecture from DARTS space (default: False)",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--num-nodes",
+        type=int,
+        default=8,
+        metavar="N",
+        help="Size of darts cell to use with random-darts (default: 8)",
+    )
 
     args = parser.parse_args(args)
 
@@ -114,6 +127,10 @@ def baseline(args):
     if args.darts:
         cell_type = "darts"
         genotype = DARTS
+    if args.random_darts:
+        cell_type = "darts"
+        genotype = generate_genotype(num_nodes=args.num_nodes)
+    print(genotype)
 
     sender = Sender(
         args.vocab_size,
@@ -146,6 +163,10 @@ def baseline(args):
     sender = torch.load(sender_file)
     receiver = torch.load(receiver_file)
     model = Trainer(sender, receiver)
+
+    pytorch_total_params = sum(p.numel() for p in model.parameters())
+    print("Total number of parameters: {}".format(pytorch_total_params))
+
     model.to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
