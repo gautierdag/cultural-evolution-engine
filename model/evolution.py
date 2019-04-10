@@ -1,10 +1,23 @@
 from graphviz import Digraph
 from collections import namedtuple
+import copy
 import random
+
 
 # Original darts genotype
 # Taken from: https://github.com/quark0/darts/blob/master/rnn/genotypes.py
-Genotype = namedtuple("Genotype", "recurrent concat")
+class Genotype(object):
+    def __init__(self, recurrent, concat):
+        self.recurrent = recurrent
+        self.concat = concat
+
+    def __repr__(self):
+        tmp = "Recurrent Gates: \n"
+        for c in self.recurrent:
+            tmp += "{}, {} \n".format(c[0], c[1])
+        tmp += "concat: {}".format(self.concat)
+        return tmp
+
 
 PRIMITIVES = ["tanh", "relu", "sigmoid", "identity"]
 MAX_NODES = 8
@@ -43,7 +56,9 @@ def mutate_genotype(genotype, edit_steps=1, allow_add_node=True):
     simplest mutation possible - edits a random single thing
     if allow_add_node - might randomly add node in mutation if num_nodes < MAX_NODES
     """
-    number_of_nodes = len(genotype.recurrent)
+
+    new_genotype = copy.deepcopy(genotype)
+    number_of_nodes = len(new_genotype.recurrent)
     allow_add_node = allow_add_node and (number_of_nodes < MAX_NODES)
     for s in range(edit_steps):
 
@@ -53,20 +68,21 @@ def mutate_genotype(genotype, edit_steps=1, allow_add_node=True):
         # mutate primitive
         if mutation_type == 0:
             p = random.choice(PRIMITIVES)
-            genotype.recurrent[node] = (p, genotype.recurrent[node][1])
+            new_genotype.recurrent[node] = (p, new_genotype.recurrent[node][1])
 
         # mutate connection
         if mutation_type == 1:
             r = random.randint(0, node)
-            genotype.recurrent[node] = (genotype.recurrent[node][0], r)
+            new_genotype.recurrent[node] = (new_genotype.recurrent[node][0], r)
 
         # Add Node
         if mutation_type == 2:
             p = random.choice(PRIMITIVES)
             r = random.randint(0, number_of_nodes)
-            genotype.recurrent.append((p, r))
+            new_genotype.recurrent.append((p, r))
+            new_genotype.concat = range(1, number_of_nodes + 2)
 
-    return genotype
+    return new_genotype
 
 
 def plot_genotype(genotype, filename, view=False):
@@ -110,7 +126,7 @@ def plot_genotype(genotype, filename, view=False):
 if __name__ == "__main__":
     g = generate_genotype(num_nodes=1)
     # plot_genotype(g.recurrent, "experiments/recurrent1")
+    print(g)
     g = mutate_genotype(g)
-    g = mutate_genotype(g)
-    g = mutate_genotype(g)
+    print(g)
     # plot_genotype(g.recurrent, "experiments/recurrent2")

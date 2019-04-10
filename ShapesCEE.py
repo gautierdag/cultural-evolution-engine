@@ -176,16 +176,18 @@ class ShapesCEE(BaseCEE):
         for a in range(pop_size):
             # model has not been run
             if getattr(self, att)[a].age < 1:
-                avg_loss_over_time = 1e6  # high value for loss
+                speed = 0  # high value for loss
             else:
-                avg_loss_over_time = (
-                    getattr(self, att)[a].loss / getattr(self, att)[a].age
-                )
+                speed = (
+                    getattr(self, att)[a].loss[0] - getattr(self, att)[a].loss[-1]
+                ) / getattr(self, att)[a].age
+                if speed < 0:
+                    speed = 0
 
             agents.append(a)
-            values.append(avg_loss_over_time)
+            values.append(speed)
 
-        values, agents = zip(*sorted(zip(values, agents)))
+        values, agents = zip(*sorted(zip(values, agents), reverse=True))
 
         return list(agents)
 
