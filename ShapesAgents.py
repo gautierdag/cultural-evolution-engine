@@ -99,7 +99,7 @@ class ReceiverAgent(BaseAgent):
             self.args.vocab_size,
             embedding_size=self.args.embedding_size,
             cell_type=self.args.cell_type,
-            genotype=genotype,
+            genotype=new_genotype,
         )
 
         torch.save(model, self.filename)

@@ -49,8 +49,7 @@ def mutate_genotype(genotype, edit_steps=1, allow_add_node=True):
 
         # mutate either connection or primitive
         mutation_type = random.randint(0, 1 + allow_add_node)
-        node = random.randint(0, number_of_nodes - 1 + allow_add_node)
-
+        node = random.randint(0, number_of_nodes - 1)
         # mutate primitive
         if mutation_type == 0:
             p = random.choice(PRIMITIVES)
@@ -64,7 +63,7 @@ def mutate_genotype(genotype, edit_steps=1, allow_add_node=True):
         # Add Node
         if mutation_type == 2:
             p = random.choice(PRIMITIVES)
-            r = random.randint(0, node)
+            r = random.randint(0, number_of_nodes)
             genotype.recurrent.append((p, r))
 
     return genotype
@@ -109,7 +108,9 @@ def plot_genotype(genotype, filename, view=False):
 
 
 if __name__ == "__main__":
-    g = generate_genotype()
-    plot_genotype(g.recurrent, "experiments/recurrent1")
+    g = generate_genotype(num_nodes=1)
+    # plot_genotype(g.recurrent, "experiments/recurrent1")
     g = mutate_genotype(g)
-    plot_genotype(g.recurrent, "experiments/recurrent2")
+    g = mutate_genotype(g)
+    g = mutate_genotype(g)
+    # plot_genotype(g.recurrent, "experiments/recurrent2")
