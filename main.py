@@ -134,6 +134,7 @@ def parse_arguments(args):
         args.iterations = 10000
         args.culling_interval = 2000
         args.max_length = 5
+        args.embedding_size = 56
 
     if args.evolution:
         args.cell_type = "darts"
