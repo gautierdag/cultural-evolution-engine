@@ -179,15 +179,14 @@ class ShapesCEE(BaseCEE):
 
         agents = []
         values = []
-        
+
         for a in range(pop_size):
             print(getattr(self, att)[a].loss)
             # model has not been run
             if getattr(self, att)[a].age < 1:
                 speed = 0  # high value for loss
-            
-            i = min(getattr(self, att)[a].age, k_shot)
             else:
+                i = min(getattr(self, att)[a].age, k_shot)
                 speed = (
                     getattr(self, att)[a].loss[0] - getattr(self, att)[a].loss[i]
                 ) / i
