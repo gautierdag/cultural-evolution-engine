@@ -189,9 +189,9 @@ def main(args):
                     writer.add_scalar(
                         "topological_similarity", topological_similarity, i
                     )
-                    writer.add_scalars("rsa_sr", rsa_sr, i)
-                    writer.add_scalars("rsa_si", rsa_si, i)
-                    writer.add_scalars("rsa_ri", rsa_ri, i)
+                    writer.add_scalar("rsa_sr", rsa_sr, i)
+                    writer.add_scalar("rsa_si", rsa_si, i)
+                    writer.add_scalar("rsa_ri", rsa_ri, i)
                     writer.add_scalar("language_entropy", l_entropy, i)
                     print(
                         "{0}/{1}\tAvg Loss: {2:.3g}\tAvg Acc: {3:.3g}\tAvg Age: {4:.3g}\tAvg Convergence: {5:.3g}\n\
