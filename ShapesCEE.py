@@ -256,7 +256,7 @@ class ShapesCEE(BaseCEE):
         """
         tot_speed = 0.0
         sender_agents, sender_speeds = self.sort_agents()
-        reveiver_agents, reveiver_speeds = self.sort_agents(receiver=True)
+        receiver_agents, receiver_speeds = self.sort_agents(receiver=True)
         speeds = sender_speeds + receiver_speeds
 
         print("Senders: ")
