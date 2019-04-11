@@ -100,7 +100,9 @@ class ShapesCEE(BaseCEE):
 
             messages.append(msgs)
 
-        # @TODO: implement language comparaison metric here (KL)
+        # @TODO:
+        #   - implement language comparaison metric here (KL)
+        #   - implement generalization error
         pop_size = len(self.senders)
         total_loss /= pop_size
         total_acc /= pop_size
@@ -251,17 +253,8 @@ class ShapesCEE(BaseCEE):
         """
         Returns average speed
         """
-        tot_speed = 0.0
         sender_agents, sender_speeds = self.sort_agents()
         receiver_agents, receiver_speeds = self.sort_agents(receiver=True)
         speeds = sender_speeds + receiver_speeds
-
-        print("Senders: ")
-        print(sender_agents)
-        print(sender_speeds)
-        print("Receivers: ")
-        print(receiver_agents)
-        print(receiver_speeds)
-
-        return sum(speeds) / len(speeds)
+        return mean(speeds)
 
