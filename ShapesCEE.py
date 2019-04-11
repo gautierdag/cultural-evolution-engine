@@ -197,10 +197,7 @@ class ShapesCEE(BaseCEE):
             values.append(speed)
 
         values, agents = zip(*sorted(zip(values, agents), reverse=True))
-        if not receiver:
-            print(values)
-            print(agents)
-        return list(agents)
+        return list(agents), list(values)
 
     def mutate_population(self, receiver=False, culling_rate=0.2, mode="best"):
         """
@@ -227,7 +224,7 @@ class ShapesCEE(BaseCEE):
 
         # mutates best agent to make child and place this child instead of worst agent
         if mode == "best":
-            agents = self.sort_agents(receiver=receiver)
+            agents, _ = self.sort_agents(receiver=receiver)
             best_agent = getattr(self, att)[agents[0]]
             if not receiver:
                 print("BEST AGENT:")
@@ -258,20 +255,16 @@ class ShapesCEE(BaseCEE):
         Returns average speed
         """
         tot_speed = 0.0
-        c = 0
-        for r in self.receivers:
-            if r.age > 0:
-                speed = (r.loss[0] - r.loss[-1]) / r.age
-                if speed < 0:
-                    speed = 0
-                tot_speed += speed
-            c += 1
-        for s in self.senders:
-            if s.age > 0:
-                speed = (s.loss[0] - s.loss[-1]) / s.age
-                if speed < 0:
-                    speed = 0
-                tot_speed += speed
-            c += 1
-        return tot_speed / c
+        sender_agents, sender_speeds = self.sort_agents()
+        reveiver_agents, reveiver_speeds = self.sort_agents(receiver=True)
+        speeds = sender_speeds + receiver_speeds
+
+        print("Senders: ")
+        print(sender_agents)
+        print(sender_speeds)
+        print("Receivers: ")
+        print(receivers_agents)
+        print(receivers_speeds)
+
+        return sum(speeds) / len(speeds)
 
