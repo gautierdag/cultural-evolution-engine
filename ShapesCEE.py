@@ -257,12 +257,13 @@ class ShapesCEE(BaseCEE):
             c += 1
         return age / c
 
-    def get_avg_speed(self):
+    def get_avg_convergence(self):
         """
-        Returns average speed
+        Returns average loss over the minimum number of batches
+        taken by similar agents
         """
-        sender_agents, sender_speeds = self.sort_agents()
-        receiver_agents, receiver_speeds = self.sort_agents(receiver=True)
-        speeds = sender_speeds + receiver_speeds
-        return mean(speeds)
+        sender_agents, sender_losses = self.sort_agents()
+        receiver_agents, receiver_losses = self.sort_agents(receiver=True)
+        losses = sender_losses + sender_losses
+        return mean(losses)
 

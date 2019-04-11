@@ -66,9 +66,9 @@ def parse_arguments(args):
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=128,
+        default=1024,
         metavar="N",
-        help="input batch size for training (default: 128)",
+        help="input batch size for training (default: 1024)",
     )
     parser.add_argument(
         "--max-length",
@@ -180,11 +180,11 @@ def main(args):
                     valid_data, valid_meta_data, valid_features
                 )
                 avg_age = shapes_cee.get_avg_age()
-                avg_speed = shapes_cee.get_avg_speed()
+                avg_convergence = shapes_cee.get_avg_convergence()
                 writer.add_scalar("avg_acc", avg_acc, i)
                 writer.add_scalar("avg_loss", avg_loss, i)
                 writer.add_scalar("avg_age", avg_age, i)
-                writer.add_scalar("avg_speed", avg_speed, i)
+                writer.add_scalar("avg_convergence", avg_convergence, i)
                 if i % args.metric_interval == 0:
                     writer.add_scalar(
                         "topological_similarity", topological_similarity, i
@@ -194,8 +194,8 @@ def main(args):
                     )
                     writer.add_scalar("language_entropy", l_entropy, i)
                     print(
-                        "{0}/{1}\tAvg Loss: {2:.3g}\tAvg Acc: {3:.3g}\tAvg Entropy: {4:.3g}\tAvg RSA \
-                        pS/R: {5:.3g}\tAvg RSA pS/I: {6:.3g}\tAvg RSA pR/I: {7:.3g}".format(
+                        "{0}/{1}\tAvg Loss: {2:.3g}\tAvg Acc: {3:.3g}\tAvg Entropy: {4:.3g}\n\
+                        Avg RSA pS/R: {5:.3g}\tAvg RSA pS/I: {6:.3g}\tAvg RSA pR/I: {7:.3g}".format(
                             i,
                             args.iterations,
                             avg_loss,
@@ -208,8 +208,13 @@ def main(args):
                     )
                 else:
                     print(
-                        "{0}/{1}\tAvg Loss: {2:.3g}\tAvg Acc: {3:.3g}\tAvg Age: {4:.3g}\tAvg Speed: {5:.3g}".format(
-                            i, args.iterations, avg_loss, avg_acc, avg_age, avg_speed
+                        "{0}/{1}\tAvg Loss: {2:.3g}\tAvg Acc: {3:.3g}\tAvg Age: {4:.3g}\tAvg Convergence: {5:.3g}".format(
+                            i,
+                            args.iterations,
+                            avg_loss,
+                            avg_acc,
+                            avg_age,
+                            avg_convergence,
                         )
                     )
 
