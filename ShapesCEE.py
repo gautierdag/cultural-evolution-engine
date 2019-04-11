@@ -233,8 +233,10 @@ class ShapesCEE(BaseCEE):
         if mode == "best":
             agents, _ = self.sort_agents(receiver=receiver)
             best_agent = getattr(self, att)[agents[0]]
+
             # replace worst c models with mutated version of best
-            for w in agents.reverse()[:c]:
+            agents.reverse()  # resort from worst to best
+            for w in agents[:c]:
                 worst_agent = getattr(self, att)[agents[w]]
                 # add hall of shame logic - note might get stuck in loop
                 # self.hall_of_shame.add(worst_agent.genotype)
