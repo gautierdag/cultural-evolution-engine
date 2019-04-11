@@ -15,6 +15,9 @@ class ShapesCEE(BaseCEE):
         self.run_folder = run_folder
         super().__init__(params)
 
+        if params.evolution:
+            self.hall_of_shame = set()
+
     def initialize_population(self, params: dict):
         """
         Initializes params.population_size sender and receiver models
@@ -173,7 +176,7 @@ class ShapesCEE(BaseCEE):
 
         return rsa_sr, rsa_si, rsa_ri, topological_similarity, l_entropy
 
-    def sort_agents(self, receiver=False, k_shot=200):
+    def sort_agents(self, receiver=False):
         """
         K_shot - how many initial batches/training steps
                 to take into account in the average loss
@@ -181,12 +184,17 @@ class ShapesCEE(BaseCEE):
         att = "receivers" if receiver else "senders"
         pop_size = len(getattr(self, att))
 
+        k_shot = self.params.culling_interval
+        # k_shot is minimum number of batches that have been seen by any agent
+        # so as to make loss comparaisons fair - cap to 100 batches minimum
+        for agent in getattr(self, att):
+            k_shot = max(min(k_shot, agent.age), 100)
+
         agents = []
         values = []
 
         for a in range(pop_size):
-            print(getattr(self, att)[a].loss)
-            # model has not been run
+            # check model has been run
             if getattr(self, att)[a].age < 1:
                 avg_loss = 100.0  # high value for loss
             else:
@@ -225,14 +233,14 @@ class ShapesCEE(BaseCEE):
         if mode == "best":
             agents, _ = self.sort_agents(receiver=receiver)
             best_agent = getattr(self, att)[agents[0]]
-            if not receiver:
-                print("BEST AGENT:")
-                print(best_agent.agent_id)
-                print(best_agent.genotype)
             # replace worst c models with mutated version of best
             for w in range(c):
                 worst_agent = getattr(self, att)[agents[-(w - 1)]]
-                new_genotype = mutate_genotype(best_agent.genotype)
+                # add hall of shame logic
+                # self.hall_of_shame.add(worst_agent.genotype)
+                new_genotype = mutate_genotype(
+                    best_agent.genotype, hall_of_shame=self.hall_of_shame
+                )
                 worst_agent.mutate(new_genotype, generation=self.generation)
 
     def get_avg_age(self):

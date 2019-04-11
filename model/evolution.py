@@ -18,6 +18,17 @@ class Genotype(object):
         tmp += "concat: {}".format(self.concat)
         return tmp
 
+    def __eq__(self, other):
+        if len(self.recurrent) != len(other.recurrent):
+            return False
+        for i in range(len(self.recurrent)):
+            if self.recurrent[i] != other.recurrent[i]:
+                return False
+        return True
+
+    def __hash__(self):
+        return hash(tuple(self.recurrent))
+
 
 PRIMITIVES = ["tanh", "relu", "sigmoid", "identity"]
 MAX_NODES = 8
@@ -51,12 +62,11 @@ def generate_genotype(num_nodes=8):
     return Genotype(recurrent=recurrent, concat=range(1, num_nodes + 1))
 
 
-def mutate_genotype(genotype, edit_steps=1, allow_add_node=True):
+def mutate_genotype(genotype, edit_steps=1, allow_add_node=True, hall_of_shame=set()):
     """
     simplest mutation possible - edits a random single thing
     if allow_add_node - might randomly add node in mutation if num_nodes < MAX_NODES
     """
-
     new_genotype = copy.deepcopy(genotype)
     number_of_nodes = len(new_genotype.recurrent)
     allow_add_node = allow_add_node and (number_of_nodes < MAX_NODES)
@@ -81,6 +91,15 @@ def mutate_genotype(genotype, edit_steps=1, allow_add_node=True):
             r = random.randint(0, number_of_nodes)
             new_genotype.recurrent.append((p, r))
             new_genotype.concat = range(1, number_of_nodes + 2)
+
+    # Get a new mutation until not in hall of shame
+    if new_genotype in hall_of_shame:
+        return mutate_genotype(
+            genotype,
+            edit_steps=edit_steps,
+            allow_add_node=allow_add_node,
+            hall_of_shame=hall_of_shame,
+        )
 
     return new_genotype
 
@@ -127,6 +146,8 @@ if __name__ == "__main__":
     g = generate_genotype(num_nodes=1)
     # plot_genotype(g.recurrent, "experiments/recurrent1")
     print(g)
-    g = mutate_genotype(g)
-    print(g)
+    h = mutate_genotype(g)
+    print(h)
+    i = mutate_genotype(g)
+    print(i)
     # plot_genotype(g.recurrent, "experiments/recurrent2")
