@@ -170,21 +170,27 @@ class ShapesCEE(BaseCEE):
 
         return rsa_sr, rsa_si, rsa_ri, topological_similarity, l_entropy
 
-    def sort_agents(self, receiver=False):
+    def sort_agents(self, receiver=False, k_shot=100):
+        """
+        K_shot - how many initial batches/training steps the speed is evaluated against
+        """
         att = "receivers" if receiver else "senders"
         pop_size = len(getattr(self, att))
 
         agents = []
         values = []
-
+        
         for a in range(pop_size):
+            print(getattr(self, att)[a].loss)
             # model has not been run
             if getattr(self, att)[a].age < 1:
                 speed = 0  # high value for loss
+            
+            i = min(getattr(self, att)[a].age, k_shot)
             else:
                 speed = (
-                    getattr(self, att)[a].loss[0] - getattr(self, att)[a].loss[-1]
-                ) / getattr(self, att)[a].age
+                    getattr(self, att)[a].loss[0] - getattr(self, att)[a].loss[i]
+                ) / i
                 if speed < 0:
                     speed = 0
 
