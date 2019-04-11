@@ -5,6 +5,7 @@ from ShapesAgents import SenderAgent, ReceiverAgent
 from model import Trainer, generate_genotype, mutate_genotype
 from utils import create_folder_if_not_exists, train_one_batch, evaluate
 import torch
+from statistics import mean
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -170,9 +171,10 @@ class ShapesCEE(BaseCEE):
 
         return rsa_sr, rsa_si, rsa_ri, topological_similarity, l_entropy
 
-    def sort_agents(self, receiver=False, k_shot=100):
+    def sort_agents(self, receiver=False, k_shot=200):
         """
-        K_shot - how many initial batches/training steps the speed is evaluated against
+        K_shot - how many initial batches/training steps
+                to take into account in the average loss
         """
         att = "receivers" if receiver else "senders"
         pop_size = len(getattr(self, att))
@@ -184,19 +186,14 @@ class ShapesCEE(BaseCEE):
             print(getattr(self, att)[a].loss)
             # model has not been run
             if getattr(self, att)[a].age < 1:
-                speed = 0  # high value for loss
+                avg_loss = 100.0  # high value for loss
             else:
-                i = min(getattr(self, att)[a].age, k_shot)
-                speed = (
-                    getattr(self, att)[a].loss[0] - getattr(self, att)[a].loss[i]
-                ) / i
-                if speed < 0:
-                    speed = 0
+                avg_loss = mean(getattr(self, att)[a].loss[:k_shot])
 
             agents.append(a)
-            values.append(speed)
+            values.append(avg_loss)
 
-        values, agents = zip(*sorted(zip(values, agents), reverse=True))
+        values, agents = zip(*sorted(zip(values, agents)))
         return list(agents), list(values)
 
     def mutate_population(self, receiver=False, culling_rate=0.2, mode="best"):

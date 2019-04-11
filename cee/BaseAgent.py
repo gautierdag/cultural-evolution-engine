@@ -14,8 +14,8 @@ class BaseAgent(object):
         self.age += 1
 
     def initialize_loss_acc(self):
-        self.loss = [100.0]
-        self.acc = [0.0]
+        self.loss = []
+        self.acc = []
 
     def update_loss_acc(self, loss: float, acc: float):
         self.loss += [loss]
