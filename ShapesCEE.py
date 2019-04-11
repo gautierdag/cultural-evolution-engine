@@ -214,7 +214,6 @@ class ShapesCEE(BaseCEE):
                                             default: 0.2
             mode (string, optional): argument for sampling
         """
-        print("Mutating Population")
         self.generation += 1
 
         att = "receivers" if receiver else "senders"
@@ -222,6 +221,7 @@ class ShapesCEE(BaseCEE):
 
         c = max(1, int(culling_rate * pop_size))
 
+        print("Mutating {} agents from {} Population".format(c, att))
         # picks random networks to mutate
         if mode == "random":
             for _ in range(c):
@@ -234,9 +234,9 @@ class ShapesCEE(BaseCEE):
             agents, _ = self.sort_agents(receiver=receiver)
             best_agent = getattr(self, att)[agents[0]]
             # replace worst c models with mutated version of best
-            for w in range(c):
-                worst_agent = getattr(self, att)[agents[-(w - 1)]]
-                # add hall of shame logic
+            for w in agents.reverse()[:c]:
+                worst_agent = getattr(self, att)[agents[w]]
+                # add hall of shame logic - note might get stuck in loop
                 # self.hall_of_shame.add(worst_agent.genotype)
                 new_genotype = mutate_genotype(
                     best_agent.genotype, hall_of_shame=self.hall_of_shame
