@@ -263,8 +263,8 @@ class ShapesCEE(BaseCEE):
         print(sender_agents)
         print(sender_speeds)
         print("Receivers: ")
-        print(receivers_agents)
-        print(receivers_speeds)
+        print(receiver_agents)
+        print(receiver_speeds)
 
         return sum(speeds) / len(speeds)
 
