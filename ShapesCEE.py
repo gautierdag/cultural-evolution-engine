@@ -64,7 +64,7 @@ class ShapesCEE(BaseCEE):
         sender.save_model(model.sender)
         receiver.save_model(model.receiver)
 
-    def evaluate_population(self, test_data, meta_data, features):
+    def evaluate_population(self, test_data, meta_data, features, advanced=True):
         """
         Evaluates language for population
             - need to get generated messages by all senders
@@ -74,6 +74,7 @@ class ShapesCEE(BaseCEE):
             dataset (str, opt) from {"train", "valid", "test"}
             meta_data: encoded metadata for inputs
             features: features in test_data (in numpy array)
+            advanced (bool, optional): whether to compute advanced metrics 
         """
         r = self.sample_population(receiver=True)
 
@@ -83,27 +84,30 @@ class ShapesCEE(BaseCEE):
         messages = []
         for s in self.senders:
             loss, acc, msgs, H_s, H_r = self.evaluate_pair(s, r, test_data)
-            sr, si, ri, ts, entropy = self.get_message_metrics(
-                msgs, H_s, H_r, meta_data, features
-            )
+            if advanced:
+                sr, si, ri, ts, entropy = self.get_message_metrics(
+                    msgs, H_s, H_r, meta_data, features
+                )
+                rsa_sr += sr
+                rsa_si += si
+                rsa_ri += ri
+                topological_similarity += ts
+                total_entropy += entropy
+
             total_loss += loss
             total_acc += acc
-            rsa_sr += sr
-            rsa_si += si
-            rsa_ri += ri
-            topological_similarity += ts
-            total_entropy += entropy
+
             messages.append(msgs)
 
         # @TODO: implement language comparaison metric here (KL)
-
-        total_loss /= len(self.senders)
-        total_acc /= len(self.senders)
-        rsa_sr /= len(self.senders)
-        rsa_si /= len(self.senders)
-        rsa_ri /= len(self.senders)
-        topological_similarity /= len(self.senders)
-        total_entropy /= len(self.senders)
+        pop_size = len(self.senders)
+        total_loss /= pop_size
+        total_acc /= pop_size
+        rsa_sr /= pop_size
+        rsa_si /= pop_size
+        rsa_ri /= pop_size
+        topological_similarity /= pop_size
+        total_entropy /= pop_size
 
         return (
             total_loss,
@@ -188,7 +192,9 @@ class ShapesCEE(BaseCEE):
             values.append(speed)
 
         values, agents = zip(*sorted(zip(values, agents), reverse=True))
-
+        if not receiver:
+            print(values)
+            print(agents)
         return list(agents)
 
     def mutate_population(self, receiver=False, culling_rate=0.2, mode="best"):
@@ -218,9 +224,49 @@ class ShapesCEE(BaseCEE):
         if mode == "best":
             agents = self.sort_agents(receiver=receiver)
             best_agent = getattr(self, att)[agents[0]]
+            if not receiver:
+                print("BEST AGENT:")
+                print(best_agent.agent_id)
+                print(best_agent.genotype)
             # replace worst c models with mutated version of best
             for w in range(c):
                 worst_agent = getattr(self, att)[agents[-(w - 1)]]
                 new_genotype = mutate_genotype(best_agent.genotype)
                 worst_agent.mutate(new_genotype, generation=self.generation)
+
+    def get_avg_age(self):
+        """
+        Returns average age
+        """
+        age = 0
+        c = 0
+        for r in self.receivers:
+            age += r.age
+            c += 1
+        for s in self.senders:
+            age += s.age
+            c += 1
+        return age / c
+
+    def get_avg_speed(self):
+        """
+        Returns average speed
+        """
+        tot_speed = 0.0
+        c = 0
+        for r in self.receivers:
+            if r.age > 0:
+                speed = (r.loss[0] - r.loss[-1]) / r.age
+                if speed < 0:
+                    speed = 0
+                tot_speed += speed
+            c += 1
+        for s in self.senders:
+            if s.age > 0:
+                speed = (s.loss[0] - s.loss[-1]) / s.age
+                if speed < 0:
+                    speed = 0
+                tot_speed += speed
+            c += 1
+        return tot_speed / c
 

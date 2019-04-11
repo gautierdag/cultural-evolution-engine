@@ -42,9 +42,16 @@ def parse_arguments(args):
     parser.add_argument(
         "--log-interval",
         type=int,
-        default=1000,
+        default=500,
         metavar="N",
-        help="Number of iterations steps between evaluation (default: 1000)",
+        help="Number of iterations steps between evaluation (default: 500)",
+    )
+    parser.add_argument(
+        "--metric-interval",
+        type=int,
+        default=2500,
+        metavar="N",
+        help="Number of iterations steps between more advanced metrics calculations (default: 2500)",
     )
     parser.add_argument(
         "--seed", type=int, default=42, metavar="S", help="random seed (default: 42)"
@@ -126,7 +133,6 @@ def parse_arguments(args):
     if args.debugging:
         args.iterations = 10000
         args.culling_interval = 2000
-        args.log_interval = 1000
         args.max_length = 5
 
     if args.evolution:
@@ -169,30 +175,42 @@ def main(args):
         for batch in train_data:
             shapes_cee.train_population(batch)
             if i % args.log_interval == 0:
-
                 avg_loss, avg_acc, rsa_sr, rsa_si, rsa_ri, topological_similarity, l_entropy = shapes_cee.evaluate_population(
                     valid_data, valid_meta_data, valid_features
                 )
-                writer.add_scalar("topological_similarity", topological_similarity, i)
-                writer.add_scalars(
-                    "rsa", {"pS/R": rsa_sr, "pS/I": rsa_si, "pR/I": rsa_ri}, i
-                )
-                writer.add_scalar("language_entropy", l_entropy, i)
+                avg_age = shapes_cee.get_avg_age()
+                avg_speed = shapes_cee.get_avg_speed()
                 writer.add_scalar("avg_acc", avg_acc, i)
                 writer.add_scalar("avg_loss", avg_loss, i)
-                print(
-                    "{0}/{1}\tAvg Loss: {2:.3g}\tAvg Acc: {3:.3g}\tAvg Entropy: {4:.3g}\tAvg RSA \
-                     pS/R: {5:.3g}\tAvg RSA pS/I: {6:.3g}\tAvg RSA pR/I: {7:.3g}".format(
-                        i,
-                        args.iterations,
-                        avg_loss,
-                        avg_acc,
-                        l_entropy,
-                        rsa_sr,
-                        rsa_si,
-                        rsa_ri,
+                writer.add_scalar("avg_age", avg_age, i)
+                writer.add_scalar("avg_speed", avg_speed, i)
+                if i % args.metric_interval == 0:
+                    writer.add_scalar(
+                        "topological_similarity", topological_similarity, i
                     )
-                )
+                    writer.add_scalars(
+                        "rsa", {"pS/R": rsa_sr, "pS/I": rsa_si, "pR/I": rsa_ri}, i
+                    )
+                    writer.add_scalar("language_entropy", l_entropy, i)
+                    print(
+                        "{0}/{1}\tAvg Loss: {2:.3g}\tAvg Acc: {3:.3g}\tAvg Entropy: {4:.3g}\tAvg RSA \
+                        pS/R: {5:.3g}\tAvg RSA pS/I: {6:.3g}\tAvg RSA pR/I: {7:.3g}".format(
+                            i,
+                            args.iterations,
+                            avg_loss,
+                            avg_acc,
+                            l_entropy,
+                            rsa_sr,
+                            rsa_si,
+                            rsa_ri,
+                        )
+                    )
+                else:
+                    print(
+                        "{0}/{1}\tAvg Loss: {2:.3g}\tAvg Acc: {3:.3g}\tAvg Age: {4:.3g}\tAvg Speed: {5:.3g}".format(
+                            i, args.iterations, avg_loss, avg_acc, avg_age, avg_speed
+                        )
+                    )
 
             if i % args.culling_interval == 0 and i > 0:
                 if args.evolution:
