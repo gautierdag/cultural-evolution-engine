@@ -56,6 +56,7 @@ class SenderAgent(BaseAgent):
 
         torch.save(model, self.filename)
 
+        self.initialize_loss_acc()
         self.age = 0
 
     def save_genotype(self, generation=0):
@@ -106,7 +107,8 @@ class ReceiverAgent(BaseAgent):
         )
 
         torch.save(model, self.filename)
-
+        
+        self.initialize_loss_acc()
         self.age = 0
 
     def save_genotype(self, generation=0):
