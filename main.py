@@ -203,11 +203,13 @@ def main(args):
                 avg_age = shapes_cee.get_avg_age()
                 writer.add_scalar("avg_age", avg_age, i)
 
+                avg_convergence = shapes_cee.get_avg_convergence_at_step(dynamic=True)
+                writer.add_scalar("avg_convergence", avg_convergence, i)
+
                 avg_convergence_at_10 = shapes_cee.get_avg_convergence_at_step(step=10)
                 avg_convergence_at_100 = shapes_cee.get_avg_convergence_at_step(
                     step=100
                 )
-
                 writer.add_scalar("avg_convergence_at_10", avg_convergence_at_10, i)
                 if avg_convergence_at_10 < min_convergence_at_10:
                     min_convergence_at_10 = avg_convergence_at_10

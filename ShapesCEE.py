@@ -280,12 +280,12 @@ class ShapesCEE(BaseCEE):
             c += 1
         return age / c
 
-    def get_avg_convergence_at_step(self, step):
+    def get_avg_convergence_at_step(self, step, dynamic=False):
         """
         Returns average loss over the first training steps
         taken by similar agents
         """
-        sender_agents, sender_losses = self.sort_agents(dynamic=False, k_shot=step)
+        sender_agents, sender_losses = self.sort_agents(dynamic=dynamic, k_shot=step)
         receiver_agents, receiver_losses = self.sort_agents(
             receiver=True, dynamic=False, k_shot=step
         )
