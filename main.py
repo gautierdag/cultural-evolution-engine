@@ -189,8 +189,11 @@ def main(args):
         for batch in train_data:
             shapes_cee.train_population(batch)
             if i % args.log_interval == 0:
+                if i % args.metric_interval == 0:
+                    advanced = True
+
                 avg_loss, avg_acc, avg_entropy, rsa_sr, rsa_si, rsa_ri, topological_similarity, l_entropy, avg_unique = shapes_cee.evaluate_population(
-                    valid_data, valid_meta_data, valid_features
+                    valid_data, valid_meta_data, valid_features, advanced=advanced
                 )
                 writer.add_scalar("avg_acc", avg_acc, i)
                 writer.add_scalar("avg_loss", avg_loss, i)
@@ -216,7 +219,7 @@ def main(args):
 
                 writer.add_scalar("avg_unique_messages", avg_unique, i)
 
-                if i % args.metric_interval == 0:
+                if advanced == 0:
                     writer.add_scalar(
                         "topological_similarity", topological_similarity, i
                     )

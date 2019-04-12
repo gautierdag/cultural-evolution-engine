@@ -71,7 +71,7 @@ class ShapesCEE(BaseCEE):
         receiver.save_model(model.receiver)
 
     def evaluate_population(
-        self, test_data, meta_data, features, advanced=True, max_senders=8
+        self, test_data, meta_data, features, advanced=False, max_senders=8
     ):
         """
         Evaluates language for population
@@ -204,11 +204,11 @@ class ShapesCEE(BaseCEE):
         att = "receivers" if receiver else "senders"
         pop_size = len(getattr(self, att))
 
-        k_shot = self.params.culling_interval
-        # k_shot is minimum number of batches that have been seen by any agent
-        # so as to make loss comparaisons fair - cap to 100 batches minimum
         if dynamic:
+            # k_shot is minimum number of batches that have been seen by any agent
+            k_shot = self.params.culling_interval
             for agent in getattr(self, att):
+                # so as to make loss comparaisons fair - cap to 100 batches minimum
                 k_shot = max(min(k_shot, agent.age), 100)
 
         agents = []
