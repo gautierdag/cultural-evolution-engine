@@ -1,11 +1,13 @@
+import torch
+import random
+from statistics import mean
+
 from cee import BaseCEE
 from cee.metrics import representation_similarity_analysis, language_entropy
 
 from ShapesAgents import SenderAgent, ReceiverAgent
 from model import Trainer, generate_genotype, mutate_genotype
 from utils import create_folder_if_not_exists, train_one_batch, evaluate
-import torch
-from statistics import mean
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
