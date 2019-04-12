@@ -280,7 +280,7 @@ class ShapesCEE(BaseCEE):
             c += 1
         return age / c
 
-    def get_avg_convergence_at_step(self, step, dynamic=False):
+    def get_avg_convergence_at_step(self, step=10, dynamic=False):
         """
         Returns average loss over the first training steps
         taken by similar agents
