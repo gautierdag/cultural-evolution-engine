@@ -7,7 +7,6 @@ import sys
 import torch
 
 from tensorboardX import SummaryWriter
-from datetime import datetime
 from model import Receiver, Sender, Trainer, DARTS, generate_genotype
 from utils import *
 from data.shapes import ShapesVocab, get_shapes_dataset
@@ -111,9 +110,8 @@ def baseline(args):
     vocab = ShapesVocab(args.vocab_size)
 
     model_name = get_filename_from_baseline_params(args)
-    timestamp = "/{:%m%d%H%M}".format(datetime.now())
     run_folder = "runs/" + model_name
-    writer = SummaryWriter(log_dir=run_folder + "/" + timestamp)
+    writer = SummaryWriter(log_dir=run_folder + "/" + str(args.seed))
 
     # Print info
     print("----------------------------------------")

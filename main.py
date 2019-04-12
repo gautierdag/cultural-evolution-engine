@@ -7,7 +7,6 @@ import torch
 import warnings
 
 from tensorboardX import SummaryWriter
-from datetime import datetime
 from utils import *
 from data.shapes import get_shapes_dataset, get_shapes_metadata, get_shapes_features
 
@@ -64,6 +63,13 @@ def parse_arguments(args):
         help="embedding size for embedding layer (default: 256)",
     )
     parser.add_argument(
+        "--cell-type",
+        type=str,
+        default="lstm",
+        metavar="S",
+        help="Cell in {'lstm', 'darts'} to select the cell type (default: lstm)",
+    )
+    parser.add_argument(
         "--batch-size",
         type=int,
         default=1024,
@@ -113,12 +119,19 @@ def parse_arguments(args):
         metavar="N",
         help="Percentage of population culled/mutated",
     )
+    parser.add_argument(
+        "--culling-mode",
+        type=str,
+        default="random",
+        metavar="S",
+        help="Mode in {'random', 'best', 'age'} to select which agent to reinitialize/cull (default: random)",
+    )
     # Biological evolution
     parser.add_argument(
         "--evolution",
         help="Use evolution instead of random re-init (default: True)",
         action="store_true",
-        default=True,
+        default=False,
     )
     parser.add_argument(
         "--init-nodes",
@@ -158,8 +171,7 @@ def main(args):
     pickle.dump(args, open("{}/experiment_params.p".format(experiment_folder), "wb"))
 
     # Tensorboard tracker for evolution process
-    timestamp = "/{:%m%d%H%M}".format(datetime.now())
-    writer = SummaryWriter(log_dir=experiment_folder + "/" + timestamp)
+    writer = SummaryWriter(log_dir=experiment_folder + "/" + str(args.seed))
 
     # Load data
     train_data, valid_data, test_data = get_shapes_dataset(
@@ -235,10 +247,14 @@ def main(args):
                     )
                 else:
                     # Cull senders
-                    shapes_cee.cull_population(culling_rate=args.culling_rate)
+                    shapes_cee.cull_population(
+                        culling_rate=args.culling_rate, mode=args.culling_mode
+                    )
                     # Cull receivers
                     shapes_cee.cull_population(
-                        receiver=True, culling_rate=args.culling_rate
+                        receiver=True,
+                        culling_rate=args.culling_rate,
+                        mode=args.culling_mode,
                     )
             i += 1
 

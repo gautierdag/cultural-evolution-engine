@@ -34,6 +34,9 @@ class BaseCEE(object):
 
         return self.receivers[r] if receiver else self.senders[r]
 
+    def sort_agents(self, receiver=False):
+        raise NotImplementedError("sort_agents not implemented")
+
     def cull_population(self, receiver=False, culling_rate=0.2, mode="random"):
         """
         Culls Population according to culling rate and mode
@@ -43,9 +46,34 @@ class BaseCEE(object):
             mode (string, optional): argument for sampling
         """
         self.generation += 1
-
-        pop_size = len(self.receivers) if receiver else len(self.senders)
+        att = "receivers" if receiver else "senders"
+        pop_size = len(getattr(self, att))
         c = max(1, int(culling_rate * pop_size))
-        for _ in range(c):
-            sampled_model = self.sample_population(receiver=receiver, mode=mode)
-            sampled_model.cull()
+
+        if mode == "random":
+            for _ in range(c):
+                sampled_model = self.sample_population(receiver=receiver, mode=mode)
+                sampled_model.cull()
+
+        # sort by best converging
+        if mode == "best":
+            agents, _ = self.sort_agents(receiver=receiver)
+            # cull worst c models
+            agents.reverse()  # resort from worst to best
+            for w in agents[:c]:
+                worst_agent = getattr(self, att)[agents[w]]
+                worst_agent.cull()
+
+        # order by age
+        if mode == "age":
+            agents = []
+            ages = []
+            for a in range(pop_size):
+                ages.append(getattr(self, att)[a].age)
+                agents.append(a)
+            # sort from oldest to newest
+            ages, agents = zip(*sorted(zip(ages, agents), reverse=True))
+            agents = list(agents)
+            for w in agents[:c]:
+                worst_agent = getattr(self, att)[agents[w]]
+                worst_agent.cull()

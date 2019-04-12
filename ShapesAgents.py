@@ -31,7 +31,8 @@ class SenderAgent(BaseAgent):
         )
         torch.save(sender, filename)
 
-        self.save_genotype()
+        if genotype is not None:
+            self.save_genotype()
 
     def mutate(self, new_genotype, generation=0):
         """
@@ -83,7 +84,9 @@ class ReceiverAgent(BaseAgent):
             genotype=genotype,
         )
         torch.save(receiver, filename)
-        self.save_genotype()
+
+        if genotype is not None:
+            self.save_genotype()
 
     def mutate(self, new_genotype, generation=0):
         """
