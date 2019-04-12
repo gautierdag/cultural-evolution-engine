@@ -68,7 +68,9 @@ class ShapesCEE(BaseCEE):
         sender.save_model(model.sender)
         receiver.save_model(model.receiver)
 
-    def evaluate_population(self, test_data, meta_data, features, advanced=True):
+    def evaluate_population(
+        self, test_data, meta_data, features, advanced=True, max_senders=8
+    ):
         """
         Evaluates language for population
             - need to get generated messages by all senders
@@ -79,7 +81,12 @@ class ShapesCEE(BaseCEE):
             meta_data: encoded metadata for inputs
             features: features in test_data (in numpy array)
             advanced (bool, optional): whether to compute advanced metrics
+            max_senders (int, optional): max number of senders to evaluate against
+                                        evaluating over the entire set is costly
+                                        so this approximation speeds it up
         """
+        random.shuffle(self.senders)
+
         r = self.sample_population(receiver=True)
 
         total_loss, total_acc, total_entropy = 0, 0, 0
@@ -88,7 +95,7 @@ class ShapesCEE(BaseCEE):
         num_unique_messages = 0
 
         messages = []
-        for s in self.senders:
+        for s in self.senders[:max_senders]:
             loss, acc, entropy, msgs, H_s, H_r = self.evaluate_pair(s, r, test_data)
             num_unique_messages += len(torch.unique(msgs, dim=0))
             if advanced:
@@ -185,8 +192,10 @@ class ShapesCEE(BaseCEE):
 
         return rsa_sr, rsa_si, rsa_ri, topological_similarity, l_entropy
 
-    def sort_agents(self, receiver=False):
+    def sort_agents(self, receiver=False, dynamic=True, k_shot=100):
         """
+        dynamic - whether k_shot is based on minimum batch size
+                  or on passed k_shot value
         K_shot - how many initial batches/training steps
                 to take into account in the average loss
         """
@@ -196,8 +205,9 @@ class ShapesCEE(BaseCEE):
         k_shot = self.params.culling_interval
         # k_shot is minimum number of batches that have been seen by any agent
         # so as to make loss comparaisons fair - cap to 100 batches minimum
-        for agent in getattr(self, att):
-            k_shot = max(min(k_shot, agent.age), 100)
+        if dynamic:
+            for agent in getattr(self, att):
+                k_shot = max(min(k_shot, agent.age), 100)
 
         agents = []
         values = []
@@ -268,13 +278,14 @@ class ShapesCEE(BaseCEE):
             c += 1
         return age / c
 
-    def get_avg_convergence(self):
+    def get_avg_convergence_at_step(self, step):
         """
-        Returns average loss over the minimum number of batches
+        Returns average loss over the first training steps
         taken by similar agents
         """
-        sender_agents, sender_losses = self.sort_agents()
-        receiver_agents, receiver_losses = self.sort_agents(receiver=True)
+        sender_agents, sender_losses = self.sort_agents(dynamic=False, k_shot=step)
+        receiver_agents, receiver_losses = self.sort_agents(
+            receiver=True, dynamic=False, k_shot=step
+        )
         losses = sender_losses + sender_losses
         return mean(losses)
-

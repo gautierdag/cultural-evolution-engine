@@ -176,6 +176,8 @@ def get_filename_from_cee_params(params):
     )
     if params.evolution:
         name = "evolution_" + name
+    else:
+        name += "_cull_mode_{}".format(params.culling_mode)
     return name
 
 

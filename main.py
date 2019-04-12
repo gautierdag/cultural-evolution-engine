@@ -34,9 +34,9 @@ def parse_arguments(args):
     parser.add_argument(
         "--iterations",
         type=int,
-        default=50000,
+        default=500000,
         metavar="N",
-        help="number of batch iterations to train for (default: 50k)",
+        help="number of batch iterations to train for (default: 500k)",
     )
     parser.add_argument(
         "--log-interval",
@@ -115,7 +115,7 @@ def parse_arguments(args):
     parser.add_argument(
         "--culling-rate",
         type=float,
-        default=0.2,
+        default=0.25,
         metavar="N",
         help="Percentage of population culled/mutated",
     )
@@ -182,7 +182,7 @@ def main(args):
 
     # Generate population and save intial models
     shapes_cee = ShapesCEE(args, run_folder=experiment_folder)
-    min_convergence = 100
+    min_convergence_at_100, min_convergence_at_10 = 10, 10
 
     i = 0
     while i < args.iterations:
@@ -192,16 +192,28 @@ def main(args):
                 avg_loss, avg_acc, avg_entropy, rsa_sr, rsa_si, rsa_ri, topological_similarity, l_entropy, avg_unique = shapes_cee.evaluate_population(
                     valid_data, valid_meta_data, valid_features
                 )
-                avg_age = shapes_cee.get_avg_age()
-                avg_convergence = shapes_cee.get_avg_convergence()
                 writer.add_scalar("avg_acc", avg_acc, i)
                 writer.add_scalar("avg_loss", avg_loss, i)
                 writer.add_scalar("avg_entropy", avg_entropy, i)
+
+                avg_age = shapes_cee.get_avg_age()
                 writer.add_scalar("avg_age", avg_age, i)
-                writer.add_scalar("avg_convergence", avg_convergence, i)
-                if avg_convergence < min_convergence:
-                    min_convergence = avg_convergence
-                writer.add_scalar("min_convergence", min_convergence, i)
+
+                avg_convergence_at_10 = shapes_cee.get_avg_convergence_at_step(step=10)
+                avg_convergence_at_100 = shapes_cee.get_avg_convergence_at_step(
+                    step=100
+                )
+
+                writer.add_scalar("avg_convergence_at_10", avg_convergence_at_10, i)
+                if avg_convergence_at_10 < min_convergence_at_10:
+                    min_convergence_at_10 = avg_convergence_at_10
+                writer.add_scalar("min_convergence_at_10", min_convergence_at_10, i)
+
+                writer.add_scalar("avg_convergence_at_100", avg_convergence_at_100, i)
+                if avg_convergence_at_100 < min_convergence_at_100:
+                    min_convergence_at_100 = avg_convergence_at_100
+                writer.add_scalar("min_convergence_at_100", min_convergence_at_100, i)
+
                 writer.add_scalar("avg_unique_messages", avg_unique, i)
 
                 if i % args.metric_interval == 0:
