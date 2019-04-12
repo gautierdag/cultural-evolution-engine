@@ -35,8 +35,6 @@ class Sender(nn.Module):
         self.hidden_size = hidden_size
         self.greedy = greedy
 
-        self.ce_loss = nn.CrossEntropyLoss(reduction="none")
-
         if cell_type == "lstm":
             self.rnn = nn.LSTMCell(embedding_size, hidden_size)
         elif cell_type == "darts":
