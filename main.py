@@ -189,6 +189,7 @@ def main(args):
         for batch in train_data:
             shapes_cee.train_population(batch)
             if i % args.log_interval == 0:
+                advanced = False
                 if i % args.metric_interval == 0:
                     advanced = True
 
@@ -219,7 +220,7 @@ def main(args):
 
                 writer.add_scalar("avg_unique_messages", avg_unique, i)
 
-                if advanced == 0:
+                if advanced:
                     writer.add_scalar(
                         "topological_similarity", topological_similarity, i
                     )
