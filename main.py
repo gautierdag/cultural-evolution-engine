@@ -232,7 +232,7 @@ def main(args):
                             avg_loss,
                             avg_acc,
                             avg_age,
-                            avg_convergence,
+                            avg_convergence_at_100,
                             l_entropy,
                             rsa_sr,
                             rsa_si,
@@ -247,7 +247,7 @@ def main(args):
                             avg_loss,
                             avg_acc,
                             avg_age,
-                            avg_convergence,
+                            avg_convergence_at_100,
                         )
                     )
 
