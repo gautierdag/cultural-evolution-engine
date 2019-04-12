@@ -175,15 +175,16 @@ def baseline(args):
     # Train
     for epoch in range(args.epochs):
         loss_meter, acc_meter = train_one_epoch(model, train_data, optimizer)
-        eval_loss_meter, eval_acc_meter, eval_messages, _, _ = evaluate(
+        eval_loss_meter, eval_acc_meter, entropy_meter, eval_messages, _, _ = evaluate(
             model, valid_data
         )
 
         if writer is not None:
-            writer.add_scalar("avg_train_epoch_loss", loss_meter.avg, epoch)
-            writer.add_scalar("avg_valid_epoch_loss", eval_loss_meter.avg, epoch)
-            writer.add_scalar("avg_train_epoch_acc", acc_meter.avg, epoch)
-            writer.add_scalar("avg_valid_epoch_acc", eval_acc_meter.avg, epoch)
+            writer.add_scalar("avg_train_loss", loss_meter.avg, epoch)
+            writer.add_scalar("avg_train_acc", acc_meter.avg, epoch)
+            writer.add_scalar("avg_loss", eval_loss_meter.avg, epoch)
+            writer.add_scalar("avg_acc", eval_acc_meter.avg, epoch)
+            writer.add_scalar("avg_entropy", entropy_meter.avg, epoch)
 
         early_stopping.step(eval_acc_meter.avg)
         if early_stopping.num_bad_epochs == 0:
@@ -213,7 +214,7 @@ def baseline(args):
     best_model.load_state_dict(state)
     best_model.to(device)
     # Evaluate best model on test data
-    _, test_acc_meter, test_messages, _, _ = evaluate(best_model, test_data)
+    _, test_acc_meter, _, test_messages, _, _ = evaluate(best_model, test_data)
     print("Test accuracy: {}".format(test_acc_meter.avg))
 
     # Update receiver and sender files with new state

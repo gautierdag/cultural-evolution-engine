@@ -60,15 +60,17 @@ def train_one_epoch(model, data, optimizer, tau=1.2):
 def evaluate(model, data, tau=1.2):
     loss_meter = AverageMeter()
     acc_meter = AverageMeter()
+    entropy_meter = AverageMeter()
     hidden_sender, hidden_receiver, messages = [], [], []
 
     model.eval()
     for d in data:
         target, distractors = d
-        loss, acc, msg, h_s, h_r = model(target, distractors, tau=tau)
+        loss, acc, msg, h_s, h_r, entropy = model(target, distractors, tau=tau)
 
         loss_meter.update(loss.item())
         acc_meter.update(acc.item())
+        entropy_meter.update(entropy.item())
 
         messages.append(msg)
         hidden_sender.append(h_s.detach().cpu().numpy())
@@ -77,7 +79,14 @@ def evaluate(model, data, tau=1.2):
     hidden_sender = np.concatenate(hidden_sender)
     hidden_receiver = np.concatenate(hidden_receiver)
 
-    return loss_meter, acc_meter, torch.cat(messages, 0), hidden_sender, hidden_receiver
+    return (
+        loss_meter,
+        acc_meter,
+        entropy_meter,
+        torch.cat(messages, 0),
+        hidden_sender,
+        hidden_receiver,
+    )
 
 
 class EarlyStopping:

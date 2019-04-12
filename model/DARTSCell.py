@@ -23,6 +23,11 @@ class DARTSCell(nn.Module):
             ]
         )
 
+        # initialization
+        nn.init.xavier_uniform_(self._W0)
+        for p in self._Ws:
+            nn.init.xavier_uniform_(p)
+
     def _get_activation(self, name):
         if name == "tanh":
             f = torch.tanh

@@ -35,6 +35,8 @@ class Sender(nn.Module):
         self.hidden_size = hidden_size
         self.greedy = greedy
 
+        self.ce_loss = nn.CrossEntropyLoss(reduction="none")
+
         if cell_type == "lstm":
             self.rnn = nn.LSTMCell(embedding_size, hidden_size)
         elif cell_type == "darts":
@@ -100,9 +102,7 @@ class Sender(nn.Module):
 
         return state, batch_size
 
-    def _calculate_seq_len(
-        self, seq_lengths, token, initial_length, seq_pos, n_sos_symbols, is_discrete
-    ):
+    def _calculate_seq_len(self, seq_lengths, token, initial_length, seq_pos):
         """
             Calculates the lengths of each sequence in the batch in-place.
             The length goes from the start of the sequece up until the eos_id is predicted.
@@ -112,16 +112,14 @@ class Sender(nn.Module):
                 token (torch.tensor): Batch of predicted tokens at this timestep.
                 initial_length (int): The max possible sequence length (output_len + n_sos_symbols).
                 seq_pos (int): The current timestep.
-                n_sos_symbols (int): Number of sos symbols at the beginning of the sequence.
-                is_discrete (bool): True if Gumbel Softmax is used, False otherwise.
         """
-        if is_discrete:
-            mask = token == self.eos_id
-        else:
+        if self.training:
             max_predicted, vocab_index = torch.max(token, dim=1)
             mask = (vocab_index == self.eos_id) * (max_predicted == 1.0)
+        else:
+            mask = token == self.eos_id
         mask *= seq_lengths == initial_length
-        seq_lengths[mask.nonzero()] = seq_pos + n_sos_symbols
+        seq_lengths[mask.nonzero()] = seq_pos + 1  # start always token appended
 
     def forward(self, tau, hidden_state=None):
         """
@@ -151,13 +149,13 @@ class Sender(nn.Module):
             ]
 
         # Keep track of sequence lengths
-        n_sos_symbols = 1
-        initial_length = self.output_len + n_sos_symbols
+        initial_length = self.output_len + 1  # add the sos token
         seq_lengths = (
             torch.ones([batch_size], dtype=torch.int64, device=device) * initial_length
         )
 
         embeds = []  # keep track of the embedded sequence
+        entropy = 0.0
         for i in range(self.output_len):
             if self.training:
                 emb = torch.matmul(output[-1], self.embedding)
@@ -173,6 +171,7 @@ class Sender(nn.Module):
                 h = state
 
             p = F.softmax(self.linear_out(h), dim=1)
+            entropy += Categorical(p).entropy()
 
             if self.training:
                 token = gumbel_softmax(p, tau, hard=True)
@@ -187,13 +186,11 @@ class Sender(nn.Module):
 
             output.append(token)
 
-            self._calculate_seq_len(
-                seq_lengths,
-                token,
-                initial_length,
-                seq_pos=i + 1,
-                n_sos_symbols=n_sos_symbols,
-                is_discrete=not self.training,
-            )
+            self._calculate_seq_len(seq_lengths, token, initial_length, seq_pos=i + 1)
 
-        return (torch.stack(output, dim=1), seq_lengths, torch.stack(embeds, dim=1))
+        return (
+            torch.stack(output, dim=1),
+            seq_lengths,
+            torch.mean(entropy) / self.output_len,
+            torch.stack(embeds, dim=1),
+        )

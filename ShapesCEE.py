@@ -78,28 +78,32 @@ class ShapesCEE(BaseCEE):
             dataset (str, opt) from {"train", "valid", "test"}
             meta_data: encoded metadata for inputs
             features: features in test_data (in numpy array)
-            advanced (bool, optional): whether to compute advanced metrics 
+            advanced (bool, optional): whether to compute advanced metrics
         """
         r = self.sample_population(receiver=True)
 
         total_loss, total_acc, total_entropy = 0, 0, 0
+        total_l_entropy = 0  # language entropy
         rsa_sr, rsa_si, rsa_ri, topological_similarity = 0, 0, 0, 0
+        num_unique_messages = 0
 
         messages = []
         for s in self.senders:
-            loss, acc, msgs, H_s, H_r = self.evaluate_pair(s, r, test_data)
+            loss, acc, entropy, msgs, H_s, H_r = self.evaluate_pair(s, r, test_data)
+            num_unique_messages += len(torch.unique(msgs, dim=0))
             if advanced:
-                sr, si, ri, ts, entropy = self.get_message_metrics(
+                sr, si, ri, ts, l_entropy = self.get_message_metrics(
                     msgs, H_s, H_r, meta_data, features
                 )
                 rsa_sr += sr
                 rsa_si += si
                 rsa_ri += ri
                 topological_similarity += ts
-                total_entropy += entropy
+                total_l_entropy += l_entropy
 
             total_loss += loss
             total_acc += acc
+            total_entropy += entropy
 
             messages.append(msgs)
 
@@ -109,20 +113,24 @@ class ShapesCEE(BaseCEE):
         pop_size = len(self.senders)
         total_loss /= pop_size
         total_acc /= pop_size
+        total_entropy /= pop_size
         rsa_sr /= pop_size
         rsa_si /= pop_size
         rsa_ri /= pop_size
         topological_similarity /= pop_size
-        total_entropy /= pop_size
+        total_l_entropy /= pop_size
+        num_unique_messages /= pop_size
 
         return (
             total_loss,
             total_acc,
+            total_entropy,
             rsa_sr,
             rsa_si,
             rsa_ri,
             topological_similarity,
-            total_entropy,
+            total_l_entropy,
+            num_unique_messages,
         )
 
     @staticmethod
@@ -143,13 +151,14 @@ class ShapesCEE(BaseCEE):
         receiver_model = receiver.get_model()
         model = Trainer(sender_model, receiver_model)
         model.to(device)
-        test_loss_meter, test_acc_meter, test_messages, hidden_sender, hidden_receiver = evaluate(
+        test_loss_meter, test_acc_meter, entropy_meter, test_messages, hidden_sender, hidden_receiver = evaluate(
             model, test_data
         )
 
         return (
             test_loss_meter.avg,
             test_acc_meter.avg,
+            entropy_meter.avg,
             test_messages,
             hidden_sender,
             hidden_receiver,

@@ -170,21 +170,28 @@ def main(args):
 
     # Generate population and save intial models
     shapes_cee = ShapesCEE(args, run_folder=experiment_folder)
+    min_convergence = 100
 
     i = 0
     while i < args.iterations:
         for batch in train_data:
             shapes_cee.train_population(batch)
             if i % args.log_interval == 0:
-                avg_loss, avg_acc, rsa_sr, rsa_si, rsa_ri, topological_similarity, l_entropy = shapes_cee.evaluate_population(
+                avg_loss, avg_acc, avg_entropy, rsa_sr, rsa_si, rsa_ri, topological_similarity, l_entropy, avg_unique = shapes_cee.evaluate_population(
                     valid_data, valid_meta_data, valid_features
                 )
                 avg_age = shapes_cee.get_avg_age()
                 avg_convergence = shapes_cee.get_avg_convergence()
                 writer.add_scalar("avg_acc", avg_acc, i)
                 writer.add_scalar("avg_loss", avg_loss, i)
+                writer.add_scalar("avg_entropy", avg_entropy, i)
                 writer.add_scalar("avg_age", avg_age, i)
                 writer.add_scalar("avg_convergence", avg_convergence, i)
+                if avg_convergence < min_convergence:
+                    min_convergence = avg_convergence
+                writer.add_scalar("min_convergence", min_convergence, i)
+                writer.add_scalar("avg_unique_messages", avg_unique, i)
+
                 if i % args.metric_interval == 0:
                     writer.add_scalar(
                         "topological_similarity", topological_similarity, i
@@ -192,7 +199,7 @@ def main(args):
                     writer.add_scalar("rsa_sr", rsa_sr, i)
                     writer.add_scalar("rsa_si", rsa_si, i)
                     writer.add_scalar("rsa_ri", rsa_ri, i)
-                    writer.add_scalar("language_entropy", l_entropy, i)
+                    writer.add_scalar("avg_language_entropy", l_entropy, i)
                     print(
                         "{0}/{1}\tAvg Loss: {2:.3g}\tAvg Acc: {3:.3g}\tAvg Age: {4:.3g}\tAvg Convergence: {5:.3g}\n\
                          Avg Entropy: {6:.3g} Avg RSA pS/R: {7:.3g}\tAvg RSA pS/I: {8:.3g}\tAvg RSA pR/I: {9:.3g}".format(
