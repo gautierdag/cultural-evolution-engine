@@ -21,7 +21,14 @@ def parse_arguments(args):
         description="Training Sender Receiver Agent on Shapes"
     )
     parser.add_argument(
-        "--debugging", help="Enable debugging mode (default: False", action="store_true"
+        "--debugging",
+        help="Enable debugging mode (default: False)",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--resume",
+        help="Resumes from checkpoint (if present) (default: False)",
+        action="store_true",
     )
     parser.add_argument(
         "--greedy",
@@ -41,16 +48,9 @@ def parse_arguments(args):
     parser.add_argument(
         "--log-interval",
         type=int,
-        default=500,
+        default=5000,
         metavar="N",
         help="Number of iterations steps between evaluation (default: 500)",
-    )
-    parser.add_argument(
-        "--metric-interval",
-        type=int,
-        default=2500,
-        metavar="N",
-        help="Number of iterations steps between more advanced metrics calculations (default: 2500)",
     )
     parser.add_argument(
         "--seed", type=int, default=42, metavar="S", help="random seed (default: 42)"
@@ -148,6 +148,7 @@ def parse_arguments(args):
         args.culling_interval = 2000
         args.max_length = 5
         args.embedding_size = 56
+        args.log_interval = 500
 
     if args.evolution:
         args.cell_type = "darts"
@@ -177,28 +178,42 @@ def main(args):
     train_data, valid_data, test_data = get_shapes_dataset(
         batch_size=args.batch_size, k=args.k, debug=args.debugging
     )
+    eval_train_data = get_shapes_dataset(
+        batch_size=args.batch_size, k=args.k, debug=args.debugging, dataset="train"
+    )
     valid_meta_data = get_shapes_metadata(dataset="valid")
     valid_features = get_shapes_features(dataset="valid")
 
     # Generate population and save intial models
-    shapes_cee = ShapesCEE(args, run_folder=experiment_folder)
+    if args.resume:
+        shapes_cee = pickle.load(open(experiment_folder + "/cee.p", "rb"))
+    else:
+        shapes_cee = ShapesCEE(args, run_folder=experiment_folder)
+
     min_convergence_at_100, min_convergence_at_10 = 10, 10
 
-    i = 0
+    i = shapes_cee.generation
     while i < args.iterations:
         for batch in train_data:
             shapes_cee.train_population(batch)
             if i % args.log_interval == 0:
-                advanced = False
-                if i % args.metric_interval == 0:
-                    advanced = True
+                shapes_cee.save()
 
                 avg_loss, avg_acc, avg_entropy, rsa_sr, rsa_si, rsa_ri, topological_similarity, l_entropy, avg_unique = shapes_cee.evaluate_population(
-                    valid_data, valid_meta_data, valid_features, advanced=advanced
+                    valid_data, valid_meta_data, valid_features, advanced=True
                 )
+                # evaluate on full train set (using separate dataloader)
+                train_avg_loss, train_avg_acc, train_avg_entropy, _, _, _, _, _, _ = shapes_cee.evaluate_population(
+                    eval_train_data, [], [], advanced=False
+                )
+
                 writer.add_scalar("avg_acc", avg_acc, i)
                 writer.add_scalar("avg_loss", avg_loss, i)
                 writer.add_scalar("avg_entropy", avg_entropy, i)
+                writer.add_scalar("train_avg_acc", train_avg_acc, i)
+                writer.add_scalar("train_avg_loss", train_avg_loss, i)
+                writer.add_scalar("train_avg_entropy", train_avg_entropy, i)
+                writer.add_scalar("generalization_error", train_avg_acc - avg_acc, i)
 
                 avg_age = shapes_cee.get_avg_age()
                 writer.add_scalar("avg_age", avg_age, i)
@@ -222,40 +237,26 @@ def main(args):
 
                 writer.add_scalar("avg_unique_messages", avg_unique, i)
 
-                if advanced:
-                    writer.add_scalar(
-                        "topological_similarity", topological_similarity, i
+                writer.add_scalar("topological_similarity", topological_similarity, i)
+                writer.add_scalar("rsa_sr", rsa_sr, i)
+                writer.add_scalar("rsa_si", rsa_si, i)
+                writer.add_scalar("rsa_ri", rsa_ri, i)
+                writer.add_scalar("avg_language_entropy", l_entropy, i)
+                print(
+                    "{0}/{1}\tAvg Loss: {2:.3g}\tAvg Acc: {3:.3g}\tAvg Age: {4:.3g}\tAvg Convergence: {5:.3g}\n\
+                        Avg Entropy: {6:.3g} Avg RSA pS/R: {7:.3g}\tAvg RSA pS/I: {8:.3g}\tAvg RSA pR/I: {9:.3g}".format(
+                        i,
+                        args.iterations,
+                        avg_loss,
+                        avg_acc,
+                        avg_age,
+                        avg_convergence_at_100,
+                        l_entropy,
+                        rsa_sr,
+                        rsa_si,
+                        rsa_ri,
                     )
-                    writer.add_scalar("rsa_sr", rsa_sr, i)
-                    writer.add_scalar("rsa_si", rsa_si, i)
-                    writer.add_scalar("rsa_ri", rsa_ri, i)
-                    writer.add_scalar("avg_language_entropy", l_entropy, i)
-                    print(
-                        "{0}/{1}\tAvg Loss: {2:.3g}\tAvg Acc: {3:.3g}\tAvg Age: {4:.3g}\tAvg Convergence: {5:.3g}\n\
-                         Avg Entropy: {6:.3g} Avg RSA pS/R: {7:.3g}\tAvg RSA pS/I: {8:.3g}\tAvg RSA pR/I: {9:.3g}".format(
-                            i,
-                            args.iterations,
-                            avg_loss,
-                            avg_acc,
-                            avg_age,
-                            avg_convergence_at_100,
-                            l_entropy,
-                            rsa_sr,
-                            rsa_si,
-                            rsa_ri,
-                        )
-                    )
-                else:
-                    print(
-                        "{0}/{1}\tAvg Loss: {2:.3g}\tAvg Acc: {3:.3g}\tAvg Age: {4:.3g}\tAvg Convergence: {5:.3g}".format(
-                            i,
-                            args.iterations,
-                            avg_loss,
-                            avg_acc,
-                            avg_age,
-                            avg_convergence_at_100,
-                        )
-                    )
+                )
 
             if i % args.culling_interval == 0 and i > 0:
                 if args.evolution:

@@ -20,6 +20,9 @@ class ShapesCEE(BaseCEE):
         if params.evolution:
             self.hall_of_shame = set()
 
+    def save(self):
+        pickle.dump(self, open(self.run_folder + "/cee.p", "wb"))
+
     def initialize_population(self, params: dict):
         """
         Initializes params.population_size sender and receiver models
@@ -216,7 +219,9 @@ class ShapesCEE(BaseCEE):
 
         for a in range(pop_size):
             # check model has been run
-            if getattr(self, att)[a].age < 1:
+            if getattr(self, att)[a].age < 1 or (
+                not dynamic and getattr(self, att)[a].age < k_shot
+            ):
                 avg_loss = 100.0  # high value for loss
             else:
                 avg_loss = mean(getattr(self, att)[a].loss[:k_shot])

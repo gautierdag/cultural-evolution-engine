@@ -9,7 +9,7 @@ from .generate_shapes import generate_shapes_dataset
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 
-def get_dataloaders(batch_size=16, k=3, debug=False):
+def get_dataloaders(batch_size=16, k=3, debug=False, dataset="all"):
     """
     Returns dataloader for the train/valid/test datasets
     Args:
@@ -63,8 +63,14 @@ def get_dataloaders(batch_size=16, k=3, debug=False):
             drop_last=True,
         ),
     )
-
-    return train_data, valid_data, test_data
+    if dataset == "train":
+        return train_data
+    if dataset == "valid":
+        return valid_data
+    if dataset == "test":
+        return test_data
+    else:
+        return train_data, valid_data, test_data
 
 
 def get_shapes_dataset(batch_size=16, k=3, debug=False):
