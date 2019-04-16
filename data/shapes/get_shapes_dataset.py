@@ -73,7 +73,7 @@ def get_dataloaders(batch_size=16, k=3, debug=False, dataset="all"):
         return train_data, valid_data, test_data
 
 
-def get_shapes_dataset(batch_size=16, k=3, debug=False):
+def get_shapes_dataset(batch_size=16, k=3, debug=False, dataset="all"):
     """
     Args:
         batch_size (int, opt): batch size of dataloaders
@@ -83,7 +83,7 @@ def get_shapes_dataset(batch_size=16, k=3, debug=False):
         print("Features files not present - generating dataset")
         generate_shapes_dataset()
 
-    return get_dataloaders(batch_size=batch_size, k=k, debug=debug)
+    return get_dataloaders(batch_size=batch_size, k=k, debug=debug, dataset=dataset)
 
 
 def get_shapes_features(dataset="test"):

@@ -61,7 +61,7 @@ class BaseCEE(object):
             # cull worst c models
             agents.reverse()  # resort from worst to best
             for w in agents[:c]:
-                worst_agent = getattr(self, att)[agents[w]]
+                worst_agent = getattr(self, att)[w]
                 worst_agent.cull()
 
         # order by age
@@ -75,5 +75,5 @@ class BaseCEE(object):
             ages, agents = zip(*sorted(zip(ages, agents), reverse=True))
             agents = list(agents)
             for w in agents[:c]:
-                worst_agent = getattr(self, att)[agents[w]]
+                worst_agent = getattr(self, att)[w]
                 worst_agent.cull()

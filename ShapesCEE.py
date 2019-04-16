@@ -263,7 +263,7 @@ class ShapesCEE(BaseCEE):
             # replace worst c models with mutated version of best
             agents.reverse()  # resort from worst to best
             for w in agents[:c]:
-                worst_agent = getattr(self, att)[agents[w]]
+                worst_agent = getattr(self, att)[w]
                 # add hall of shame logic - note might get stuck in loop
                 # self.hall_of_shame.add(worst_agent.genotype)
                 new_genotype = mutate_genotype(
