@@ -11,7 +11,7 @@ def message_distance(messages):
     """
     N, A = messages.shape[0], messages.shape[1]
     combinations = list(itertools.combinations(range(A), 2))
-    encoded_messages = one_hot(tmp).reshape(N, A, -1).astype(float)
+    encoded_messages = one_hot(messages).reshape(N, A, -1).astype(float)
     tot_dist = 0
     perfect_matches = 0
     for c in combinations:
