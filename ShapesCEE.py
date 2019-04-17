@@ -102,10 +102,10 @@ class ShapesCEE(BaseCEE):
         r = self.sample_population(receiver=True)
 
         metrics = {
-            "total_loss": 0,
-            "total_acc": 0,
-            "total_entropy": 0,
-            "total_l_entropy": 0,  # language entropy
+            "loss": 0,
+            "acc": 0,
+            "entropy": 0,
+            "l_entropy": 0,  # language entropy
             "rsa_sr": 0,
             "rsa_si": 0,
             "rsa_ri": 0,
@@ -125,11 +125,11 @@ class ShapesCEE(BaseCEE):
                 metrics["rsa_si"] += si
                 metrics["rsa_ri"] += ri
                 metrics["topological_similarity"] += ts
-                metrics["total_l_entropy"] += l_entropy
+                metrics["l_entropy"] += l_entropy
 
-            metrics["total_loss"] += loss
-            metrics["total_acc"] += acc
-            metrics["total_entropy"] += entropy
+            metrics["loss"] += loss
+            metrics["acc"] += acc
+            metrics["entropy"] += entropy
 
             messages.append(msgs)
 

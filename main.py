@@ -194,8 +194,6 @@ def main(args):
         shapes_cee = ShapesCEE(args, run_folder=experiment_folder)
         i = 0
 
-    min_convergence_at_100, min_convergence_at_10 = 10, 10
-
     while i < args.iterations:
         for batch in train_data:
             shapes_cee.train_population(batch)
@@ -209,39 +207,43 @@ def main(args):
                     eval_train_data, [], [], advanced=False
                 )
 
-                writer.add_scalar("avg_acc", metrics["avg_acc"], i)
-                writer.add_scalar("avg_loss", metrics["avg_loss"], i)
-                writer.add_scalar("avg_entropy", metrics["avg_entropy"], i)
-                writer.add_scalar("train_avg_acc", train_metrics["avg_acc"], i)
-                writer.add_scalar("train_avg_loss", train_metrics["avg_loss"], i)
-                writer.add_scalar("train_avg_entropy", train_metrics["avg_entropy"], i)
+                writer.add_scalar("avg_acc", metrics["acc"], i)
+                writer.add_scalar("avg_loss", metrics["loss"], i)
+                writer.add_scalar("avg_entropy", metrics["entropy"], i)
+                writer.add_scalar("train_avg_acc", train_metrics["acc"], i)
+                writer.add_scalar("train_avg_loss", train_metrics["loss"], i)
+                writer.add_scalar("train_avg_entropy", train_metrics["entropy"], i)
                 writer.add_scalar(
-                    "generalization_error",
-                    train_metrics["avg_acc"] - metrics["avg_acc"],
-                    i,
+                    "generalization_error", train_metrics["acc"] - metrics["acc"], i
                 )
 
-                avg_age = shapes_cee.get_avg_age()
-                writer.add_scalar("avg_age", avg_age, i)
+                metrics["avg_age"] = shapes_cee.get_avg_age()
+                writer.add_scalar("avg_age", metrics["avg_age"], i)
 
-                avg_convergence = shapes_cee.get_avg_convergence_at_step(dynamic=True)
-                writer.add_scalar("avg_convergence", avg_convergence, i)
-
-                avg_convergence_at_10 = shapes_cee.get_avg_convergence_at_step(step=10)
-                avg_convergence_at_100 = shapes_cee.get_avg_convergence_at_step(
-                    step=100
+                # convergence calculations
+                metrics["avg_convergence"] = shapes_cee.get_avg_convergence_at_step(
+                    dynamic=True
                 )
-                writer.add_scalar("avg_convergence_at_10", avg_convergence_at_10, i)
-                if avg_convergence_at_10 < min_convergence_at_10:
-                    min_convergence_at_10 = avg_convergence_at_10
-                writer.add_scalar("min_convergence_at_10", min_convergence_at_10, i)
+                writer.add_scalar("avg_convergence", metrics["avg_convergence"], i)
 
-                writer.add_scalar("avg_convergence_at_100", avg_convergence_at_100, i)
-                if avg_convergence_at_100 < min_convergence_at_100:
-                    min_convergence_at_100 = avg_convergence_at_100
-                writer.add_scalar("min_convergence_at_100", min_convergence_at_100, i)
+                metrics[
+                    "avg_convergence_at_10"
+                ] = shapes_cee.get_avg_convergence_at_step(step=10)
 
-                writer.add_scalar("avg_unique_messages", metrics["avg_unique"], i)
+                metrics[
+                    "avg_convergence_at_100"
+                ] = shapes_cee.get_avg_convergence_at_step(step=100)
+
+                writer.add_scalar(
+                    "avg_convergence_at_10", metrics["avg_convergence_at_10"], i
+                )
+                writer.add_scalar(
+                    "avg_convergence_at_100", metrics["avg_convergence_at_100"], i
+                )
+
+                writer.add_scalar(
+                    "avg_unique_messages", metrics["num_unique_messages"], i
+                )
 
                 writer.add_scalar(
                     "topological_similarity", metrics["topological_similarity"], i
@@ -259,14 +261,14 @@ def main(args):
                         Avg Entropy: {6:.3g} Avg RSA pS/R: {7:.3g}\tAvg RSA pS/I: {8:.3g}\tAvg RSA pR/I: {9:.3g}".format(
                         i,
                         args.iterations,
-                        avg_loss,
-                        avg_acc,
-                        avg_age,
-                        avg_convergence_at_100,
-                        l_entropy,
-                        rsa_sr,
-                        rsa_si,
-                        rsa_ri,
+                        metrics["loss"],
+                        metrics["acc"],
+                        metrics["avg_age"],
+                        metrics["avg_convergence_at_100"],
+                        metrics["l_entropy"],
+                        metrics["rsa_sr"],
+                        metrics["rsa_si"],
+                        metrics["rsa_ri"],
                     )
                 )
 
