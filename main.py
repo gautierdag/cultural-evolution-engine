@@ -48,7 +48,7 @@ def parse_arguments(args):
     parser.add_argument(
         "--log-interval",
         type=int,
-        default=5000,
+        default=10000,
         metavar="N",
         help="Number of iterations steps between evaluation (default: 500)",
     )
@@ -101,14 +101,14 @@ def parse_arguments(args):
     parser.add_argument(
         "--population-size",
         type=int,
-        default=4,
+        default=16,
         metavar="N",
         help="Size of each sender and receiver pop (default: 4)",
     )
     parser.add_argument(
         "--culling-interval",
         type=int,
-        default=5000,
+        default=10000,
         metavar="N",
         help="Number of sampling steps between culling/mutate (default: 5k)",
     )
@@ -149,6 +149,7 @@ def parse_arguments(args):
         args.max_length = 5
         args.embedding_size = 56
         args.log_interval = 500
+        args.population_size = 4
 
     if args.evolution:
         args.cell_type = "darts"
