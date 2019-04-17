@@ -270,6 +270,16 @@ def main(args):
                     )
                 )
 
+                # dump metrics
+                pickle.dump(
+                    metrics,
+                    open("{}/metrics_at_{}.p".format(experiment_folder, i), "wb"),
+                )
+                pickle.dump(
+                    train_metrics,
+                    open("{}/train_metrics_at_{}.p".format(experiment_folder, i), "wb"),
+                )
+
             if i % args.culling_interval == 0 and i > 0:
                 if args.evolution:
                     shapes_cee.mutate_population(culling_rate=args.culling_rate)
