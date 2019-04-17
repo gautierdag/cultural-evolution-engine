@@ -48,7 +48,7 @@ def parse_arguments(args):
     parser.add_argument(
         "--log-interval",
         type=int,
-        default=10000,
+        default=5000,
         metavar="N",
         help="Number of iterations steps between evaluation (default: 500)",
     )
@@ -108,7 +108,7 @@ def parse_arguments(args):
     parser.add_argument(
         "--culling-interval",
         type=int,
-        default=10000,
+        default=5000,
         metavar="N",
         help="Number of sampling steps between culling/mutate (default: 5k)",
     )
