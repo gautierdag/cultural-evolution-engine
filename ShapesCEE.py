@@ -74,6 +74,8 @@ class ShapesCEE(BaseCEE):
         sender.save_model(model.sender)
         receiver.save_model(model.receiver)
 
+        self.iteration += 1
+
     def evaluate_population(
         self, test_data, meta_data, features, advanced=False, max_senders=8
     ):

@@ -7,6 +7,7 @@ class BaseCEE(object):
         self.receivers = []
         self.params = params
         self.generation = 0
+        self.iteration = 0
         self.initialize_population(params)
 
     def initialize_population(self, params: dict):

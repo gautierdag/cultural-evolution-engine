@@ -186,19 +186,20 @@ def main(args):
 
     # Generate population and save intial models
     if args.resume:
+        print("Resuming from checkpoint")
         shapes_cee = pickle.load(open(experiment_folder + "/cee.p", "rb"))
+        i = shapes_cee.iteration
     else:
         shapes_cee = ShapesCEE(args, run_folder=experiment_folder)
+        i = 0
 
     min_convergence_at_100, min_convergence_at_10 = 10, 10
 
-    i = shapes_cee.generation
     while i < args.iterations:
         for batch in train_data:
             shapes_cee.train_population(batch)
+            shapes_cee.save()
             if i % args.log_interval == 0:
-                shapes_cee.save()
-
                 avg_loss, avg_acc, avg_entropy, rsa_sr, rsa_si, rsa_ri, topological_similarity, l_entropy, avg_unique = shapes_cee.evaluate_population(
                     valid_data, valid_meta_data, valid_features, advanced=True
                 )
