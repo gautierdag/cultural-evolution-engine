@@ -201,21 +201,25 @@ def main(args):
             shapes_cee.train_population(batch)
             shapes_cee.save()
             if i % args.log_interval == 0:
-                avg_loss, avg_acc, avg_entropy, rsa_sr, rsa_si, rsa_ri, topological_similarity, l_entropy, avg_unique = shapes_cee.evaluate_population(
+                metrics = shapes_cee.evaluate_population(
                     valid_data, valid_meta_data, valid_features, advanced=True
                 )
                 # evaluate on full train set (using separate dataloader)
-                train_avg_loss, train_avg_acc, train_avg_entropy, _, _, _, _, _, _ = shapes_cee.evaluate_population(
+                train_metrics = shapes_cee.evaluate_population(
                     eval_train_data, [], [], advanced=False
                 )
 
-                writer.add_scalar("avg_acc", avg_acc, i)
-                writer.add_scalar("avg_loss", avg_loss, i)
-                writer.add_scalar("avg_entropy", avg_entropy, i)
-                writer.add_scalar("train_avg_acc", train_avg_acc, i)
-                writer.add_scalar("train_avg_loss", train_avg_loss, i)
-                writer.add_scalar("train_avg_entropy", train_avg_entropy, i)
-                writer.add_scalar("generalization_error", train_avg_acc - avg_acc, i)
+                writer.add_scalar("avg_acc", metrics["avg_acc"], i)
+                writer.add_scalar("avg_loss", metrics["avg_loss"], i)
+                writer.add_scalar("avg_entropy", metrics["avg_entropy"], i)
+                writer.add_scalar("train_avg_acc", train_metrics["avg_acc"], i)
+                writer.add_scalar("train_avg_loss", train_metrics["avg_loss"], i)
+                writer.add_scalar("train_avg_entropy", train_metrics["avg_entropy"], i)
+                writer.add_scalar(
+                    "generalization_error",
+                    train_metrics["avg_acc"] - metrics["avg_acc"],
+                    i,
+                )
 
                 avg_age = shapes_cee.get_avg_age()
                 writer.add_scalar("avg_age", avg_age, i)
@@ -237,13 +241,19 @@ def main(args):
                     min_convergence_at_100 = avg_convergence_at_100
                 writer.add_scalar("min_convergence_at_100", min_convergence_at_100, i)
 
-                writer.add_scalar("avg_unique_messages", avg_unique, i)
+                writer.add_scalar("avg_unique_messages", metrics["avg_unique"], i)
 
-                writer.add_scalar("topological_similarity", topological_similarity, i)
-                writer.add_scalar("rsa_sr", rsa_sr, i)
-                writer.add_scalar("rsa_si", rsa_si, i)
-                writer.add_scalar("rsa_ri", rsa_ri, i)
-                writer.add_scalar("avg_language_entropy", l_entropy, i)
+                writer.add_scalar(
+                    "topological_similarity", metrics["topological_similarity"], i
+                )
+                writer.add_scalar("rsa_sr", metrics["rsa_sr"], i)
+                writer.add_scalar("rsa_si", metrics["rsa_si"], i)
+                writer.add_scalar("rsa_ri", metrics["rsa_ri"], i)
+
+                writer.add_scalar("avg_language_entropy", metrics["l_entropy"], i)
+                writer.add_scalar("avg_message_dist", metrics["avg_message_dist"], i)
+                writer.add_scalar("avg_matches", metrics["avg_matches"], i)
+
                 print(
                     "{0}/{1}\tAvg Loss: {2:.3g}\tAvg Acc: {3:.3g}\tAvg Age: {4:.3g}\tAvg Convergence: {5:.3g}\n\
                         Avg Entropy: {6:.3g} Avg RSA pS/R: {7:.3g}\tAvg RSA pS/I: {8:.3g}\tAvg RSA pR/I: {9:.3g}".format(
