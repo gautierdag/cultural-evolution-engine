@@ -4,7 +4,11 @@ import pickle
 from statistics import mean
 
 from cee import BaseCEE
-from cee.metrics import representation_similarity_analysis, language_entropy
+from cee.metrics import (
+    representation_similarity_analysis,
+    language_entropy,
+    message_distance,
+)
 
 from ShapesAgents import SenderAgent, ReceiverAgent
 from model import Trainer, generate_genotype, mutate_genotype
@@ -77,7 +81,7 @@ class ShapesCEE(BaseCEE):
         self.iteration += 1
 
     def evaluate_population(
-        self, test_data, meta_data, features, advanced=False, max_senders=8
+        self, test_data, meta_data, features, advanced=False, max_senders=16
     ):
         """
         Evaluates language for population
@@ -97,56 +101,50 @@ class ShapesCEE(BaseCEE):
 
         r = self.sample_population(receiver=True)
 
-        total_loss, total_acc, total_entropy = 0, 0, 0
-        total_l_entropy = 0  # language entropy
-        rsa_sr, rsa_si, rsa_ri, topological_similarity = 0, 0, 0, 0
-        num_unique_messages = 0
+        metrics = {
+            "total_loss": 0,
+            "total_acc": 0,
+            "total_entropy": 0,
+            "total_l_entropy": 0,  # language entropy
+            "rsa_sr": 0,
+            "rsa_si": 0,
+            "rsa_ri": 0,
+            "topological_similarity": 0,
+            "num_unique_messages": 0,
+        }
 
         messages = []
         for s in self.senders[:max_senders]:
             loss, acc, entropy, msgs, H_s, H_r = self.evaluate_pair(s, r, test_data)
-            num_unique_messages += len(torch.unique(msgs, dim=0))
+            metrics["num_unique_messages"] += len(torch.unique(msgs, dim=0))
             if advanced:
                 sr, si, ri, ts, l_entropy = self.get_message_metrics(
                     msgs, H_s, H_r, meta_data, features
                 )
-                rsa_sr += sr
-                rsa_si += si
-                rsa_ri += ri
-                topological_similarity += ts
-                total_l_entropy += l_entropy
+                metrics["rsa_sr"] += sr
+                metrics["rsa_si"] += si
+                metrics["rsa_ri"] += ri
+                metrics["topological_similarity"] += ts
+                metrics["total_l_entropy"] += l_entropy
 
-            total_loss += loss
-            total_acc += acc
-            total_entropy += entropy
+            metrics["total_loss"] += loss
+            metrics["total_acc"] += acc
+            metrics["total_entropy"] += entropy
 
             messages.append(msgs)
 
-        # @TODO:
-        #   - implement language comparaison metric here (KL)
-        #   - implement generalization error
-        pop_size = len(self.senders)
-        total_loss /= pop_size
-        total_acc /= pop_size
-        total_entropy /= pop_size
-        rsa_sr /= pop_size
-        rsa_si /= pop_size
-        rsa_ri /= pop_size
-        topological_similarity /= pop_size
-        total_l_entropy /= pop_size
-        num_unique_messages /= pop_size
+        pop_size = max_senders
+        for metric in metrics:
+            metrics[metric] /= pop_size
 
-        return (
-            total_loss,
-            total_acc,
-            total_entropy,
-            rsa_sr,
-            rsa_si,
-            rsa_ri,
-            topological_similarity,
-            total_l_entropy,
-            num_unique_messages,
+        # language comparaison metric
+        avg_message_dist, avg_matches = message_distance(
+            torch.stack(messages, dim=1).cpu().numpy()
         )
+        metrics["avg_message_dist"] = avg_message_dist
+        metrics["avg_matches"] = avg_matches
+
+        return metrics
 
     @staticmethod
     def evaluate_pair(sender, receiver, test_data):
