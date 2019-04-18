@@ -59,7 +59,9 @@ class SenderAgent(BaseAgent):
         geno_filename = "{}/senders_genotype/sender_{}_generation_{}".format(
             self.run_folder, self.agent_id, generation
         )
-        img = get_genotype_image(self.genotype.recurrent, geno_filename, metrics={})
+        img = get_genotype_image(
+            self.genotype.recurrent, geno_filename, metrics=metrics
+        )
         pickle.dump(self.genotype, open(geno_filename + ".p", "wb"))
         return img
 
@@ -107,6 +109,8 @@ class ReceiverAgent(BaseAgent):
         geno_filename = "{}/receivers_genotype/receiver_{}_generation_{}".format(
             self.run_folder, self.agent_id, generation
         )
-        img = get_genotype_image(self.genotype.recurrent, geno_filename, metrics={})
+        img = get_genotype_image(
+            self.genotype.recurrent, geno_filename, metrics=metrics
+        )
         pickle.dump(self.genotype, open(geno_filename + ".p", "wb"))
         return img
