@@ -284,10 +284,13 @@ def main(args):
 
             if i % args.culling_interval == 0 and i > 0:
                 if args.evolution:
+                    shapes_cee.save_genotypes_to_writer(writer)
                     shapes_cee.mutate_population(culling_rate=args.culling_rate)
+                    shapes_cee.save_genotypes_to_writer(writer, receiver=True)
                     shapes_cee.mutate_population(
                         culling_rate=args.culling_rate, receiver=True
                     )
+
                 else:
                     # Cull senders
                     shapes_cee.cull_population(

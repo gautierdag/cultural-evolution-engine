@@ -227,6 +227,9 @@ class ShapesCEE(BaseCEE):
             else:
                 avg_loss = mean(getattr(self, att)[a].loss[:k_shot])
 
+            # store the latest convergence for each agent
+            getattr(self, att)[a].convergence = avg_loss
+
             agents.append(a)
             values.append(avg_loss)
 
@@ -297,3 +300,23 @@ class ShapesCEE(BaseCEE):
         )
         losses = sender_losses + sender_losses
         return mean(losses)
+
+    def save_genotypes_to_writer(self, writer, receiver=False):
+        att = "receivers" if receiver else "senders"
+        self.sort_agents(receiver=receiver)
+        for a in getattr(self, att):
+            m = {
+                "agent id": a.agent_id,
+                "loss": a.loss[-1],
+                "convergence": a.convergence,
+                "acc": a.acc[-1],
+                "age": a.age,
+            }
+            img = a.save_genotype(generation=self.generation, metrics=m)
+            writer.add_image(
+                "{}{}".format(att, a.agent_id),
+                img,
+                global_step=self.generation,
+                dataformats="HWC",
+            )
+

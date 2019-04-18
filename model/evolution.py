@@ -1,7 +1,8 @@
 from graphviz import Digraph
-from collections import namedtuple
+from PIL import Image
 import copy
 import random
+import numpy as np
 
 
 # Original darts genotype
@@ -104,9 +105,18 @@ def mutate_genotype(genotype, edit_steps=1, allow_add_node=True, hall_of_shame=s
     return new_genotype
 
 
-def plot_genotype(genotype, filename, view=False):
+def load_image(infilename: str):
+    """
+    helper for loading image from file to numpy
+    """
+    img = Image.open(infilename)
+    data = np.array(img).astype(float) / 255
+    return data
+
+
+def get_genotype_image(genotype, filename, view=False, metrics={}):
     g = Digraph(
-        format="pdf",
+        format="jpeg",
         edge_attr=dict(fontsize="20", fontname="times"),
         node_attr=dict(
             style="filled",
@@ -139,15 +149,21 @@ def plot_genotype(genotype, filename, view=False):
     for i in range(1, steps + 1):
         g.edge(str(i), "h_{t}", fillcolor="gray")
 
-    g.render(filename, view=view)
+    atts = ""
+    for k in metrics:
+        atts += "{}: {} \n".format(k, metrics[k])
+    g.attr(label=atts)
+
+    g.render(filename, view=view, format="jpeg")
+    return load_image(filename + ".jpeg")
 
 
 if __name__ == "__main__":
     g = generate_genotype(num_nodes=1)
-    # plot_genotype(g.recurrent, "experiments/recurrent1")
+    # get_genotype_image(g.recurrent, "experiments/recurrent1")
     print(g)
     h = mutate_genotype(g)
     print(h)
     i = mutate_genotype(g)
     print(i)
-    # plot_genotype(g.recurrent, "experiments/recurrent2")
+    # get_genotype_image(g.recurrent, "experiments/recurrent2")

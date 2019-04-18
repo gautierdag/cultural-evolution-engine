@@ -1,5 +1,5 @@
 from cee import BaseAgent
-from model import Sender, Receiver, plot_genotype
+from model import Sender, Receiver, get_genotype_image
 from data.shapes import ShapesVocab
 
 import torch
@@ -17,6 +17,7 @@ class SenderAgent(BaseAgent):
 
         super().__init__(filename, args)
         self.genotype = genotype
+        self.convergence = 100
 
         vocab = ShapesVocab(args.vocab_size)
 
@@ -31,16 +32,11 @@ class SenderAgent(BaseAgent):
         )
         torch.save(sender, filename)
 
-        if genotype is not None:
-            self.save_genotype()
-
-    def mutate(self, new_genotype, generation=0):
+    def mutate(self, new_genotype):
         """
         Mutate model to new genotype
         """
         self.genotype = new_genotype
-
-        self.save_genotype(generation=generation)
 
         vocab = ShapesVocab(self.args.vocab_size)
 
@@ -59,12 +55,13 @@ class SenderAgent(BaseAgent):
         self.initialize_loss_acc()
         self.age = 0
 
-    def save_genotype(self, generation=0):
+    def save_genotype(self, generation=0, metrics={}):
         geno_filename = "{}/senders_genotype/sender_{}_generation_{}".format(
             self.run_folder, self.agent_id, generation
         )
-        plot_genotype(self.genotype.recurrent, geno_filename)
+        img = get_genotype_image(self.genotype.recurrent, geno_filename, metrics={})
         pickle.dump(self.genotype, open(geno_filename + ".p", "wb"))
+        return img
 
 
 class ReceiverAgent(BaseAgent):
@@ -86,16 +83,11 @@ class ReceiverAgent(BaseAgent):
         )
         torch.save(receiver, filename)
 
-        if genotype is not None:
-            self.save_genotype()
-
-    def mutate(self, new_genotype, generation=0):
+    def mutate(self, new_genotype):
         """
         Mutate model to new genotype
         """
         self.genotype = new_genotype
-
-        self.save_genotype(generation=generation)
 
         vocab = ShapesVocab(self.args.vocab_size)
 
@@ -107,13 +99,14 @@ class ReceiverAgent(BaseAgent):
         )
 
         torch.save(model, self.filename)
-        
+
         self.initialize_loss_acc()
         self.age = 0
 
-    def save_genotype(self, generation=0):
+    def save_genotype(self, generation=0, metrics={}):
         geno_filename = "{}/receivers_genotype/receiver_{}_generation_{}".format(
             self.run_folder, self.agent_id, generation
         )
-        plot_genotype(self.genotype.recurrent, geno_filename)
+        img = get_genotype_image(self.genotype.recurrent, geno_filename, metrics={})
         pickle.dump(self.genotype, open(geno_filename + ".p", "wb"))
+        return img
