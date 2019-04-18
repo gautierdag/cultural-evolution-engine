@@ -151,7 +151,7 @@ def get_genotype_image(genotype, filename, view=False, metrics={}):
 
     atts = ""
     for k in metrics:
-        atts += "{}: {} \n".format(k, metrics[k])
+        atts += "{}: {} \n".format(k, round(metrics[k], 4))
     g.attr(label=atts)
 
     g.render(filename, view=view, format="jpeg")
