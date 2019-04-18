@@ -257,7 +257,7 @@ class ShapesCEE(BaseCEE):
             for _ in range(c):
                 sampled_agent = self.sample_population(receiver=receiver, mode=mode)
                 new_genotype = mutate_genotype(sampled_agent.genotype)
-                sampled_agent.mutate(new_genotype, generation=self.generation)
+                sampled_agent.mutate(new_genotype)
 
         # mutates best agent to make child and place this child instead of worst agent
         if mode == "best":
@@ -273,7 +273,7 @@ class ShapesCEE(BaseCEE):
                 new_genotype = mutate_genotype(
                     best_agent.genotype, hall_of_shame=self.hall_of_shame
                 )
-                worst_agent.mutate(new_genotype, generation=self.generation)
+                worst_agent.mutate(new_genotype)
 
     def get_avg_age(self):
         """
