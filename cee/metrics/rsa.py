@@ -74,11 +74,14 @@ def representation_similarity_analysis(
     rsa_sr = scipy.stats.pearsonr(sim_hidden_sender, sim_hidden_receiver)[0]
     rsa_si = scipy.stats.pearsonr(sim_hidden_sender, sim_image_features)[0]
     rsa_ri = scipy.stats.pearsonr(sim_hidden_receiver, sim_image_features)[0]
+    # added rsa_sm to compare between message and internal of sender
+    rsa_sm = scipy.stats.pearsonr(sim_hidden_sender, sim_messages)[0]
+
     topological_similarity = scipy.stats.pearsonr(sim_messages, sim_metadata)[0]
 
     if tre:
         pseudo_tre = np.linalg.norm(sim_metadata - sim_messages, ord=1)
-        return rsa_sr, rsa_si, rsa_ri, topological_similarity, pseudo_tre
+        return rsa_sr, rsa_si, rsa_ri, rsa_sm, topological_similarity, pseudo_tre
     else:
-        return rsa_sr, rsa_si, rsa_ri, topological_similarity
+        return rsa_sr, rsa_si, rsa_ri, rsa_sm, topological_similarity
 

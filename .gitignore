@@ -2,6 +2,7 @@ balanced/
 runs/
 experiments/
 
+*.png
 *.vscode
 *.npy
 *.pckl

@@ -251,8 +251,11 @@ def main(args):
                 writer.add_scalar("rsa_sr", metrics["rsa_sr"], i)
                 writer.add_scalar("rsa_si", metrics["rsa_si"], i)
                 writer.add_scalar("rsa_ri", metrics["rsa_ri"], i)
-
+                writer.add_scalar("rsa_sm", metrics["rsa_sm"], i)
+                
                 writer.add_scalar("avg_language_entropy", metrics["l_entropy"], i)
+                writer.add_scalar("pseudo_tre", metrics["pseudo_tre"], i)
+
                 writer.add_scalar("avg_message_dist", metrics["avg_message_dist"], i)
                 writer.add_scalar("avg_matches", metrics["avg_matches"], i)
 

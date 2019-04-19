@@ -109,6 +109,8 @@ class ShapesCEE(BaseCEE):
             "rsa_sr": 0,
             "rsa_si": 0,
             "rsa_ri": 0,
+            "rsa_sm": 0,
+            "pseudo_tre": 0,
             "topological_similarity": 0,
             "num_unique_messages": 0,
         }
@@ -118,13 +120,15 @@ class ShapesCEE(BaseCEE):
             loss, acc, entropy, msgs, H_s, H_r = self.evaluate_pair(s, r, test_data)
             metrics["num_unique_messages"] += len(torch.unique(msgs, dim=0))
             if advanced:
-                sr, si, ri, ts, l_entropy = self.get_message_metrics(
+                sr, si, ri, sm, ts, pt, l_entropy = self.get_message_metrics(
                     msgs, H_s, H_r, meta_data, features
                 )
                 metrics["rsa_sr"] += sr
                 metrics["rsa_si"] += si
                 metrics["rsa_ri"] += ri
+                metrics["rsa_sm"] += sm
                 metrics["topological_similarity"] += ts
+                metrics["pseudo_tre"] += pt
                 metrics["l_entropy"] += l_entropy
 
             metrics["loss"] += loss
@@ -189,14 +193,22 @@ class ShapesCEE(BaseCEE):
         """
         messages = messages.cpu().numpy()
 
-        rsa_sr, rsa_si, rsa_ri, topological_similarity = representation_similarity_analysis(
-            img_features, meta_data, messages, hidden_sender, hidden_receiver
+        rsa_sr, rsa_si, rsa_ri, rsa_sm, topological_similarity, pseudo_tre = representation_similarity_analysis(
+            img_features, meta_data, messages, hidden_sender, hidden_receiver, tre=True
         )
 
         # rsa = representation_similarity_analysis(messages, meta_data)
         l_entropy = language_entropy(messages)
 
-        return rsa_sr, rsa_si, rsa_ri, topological_similarity, l_entropy
+        return (
+            rsa_sr,
+            rsa_si,
+            rsa_ri,
+            rsa_sm,
+            topological_similarity,
+            pseudo_tre,
+            l_entropy,
+        )
 
     def sort_agents(self, receiver=False, dynamic=True, k_shot=100):
         """
