@@ -1,12 +1,12 @@
 from cee import BaseAgent
-from model import Sender, Receiver, get_genotype_image
-from data.shapes import ShapesVocab
+from model import ShapesSender, ShapesReceiver, get_genotype_image
+from data import AgentVocab
 
 import torch
 import pickle
 
 
-class SenderAgent(BaseAgent):
+class ShapesSenderAgent(BaseAgent):
     def __init__(self, run_folder, args, genotype=None, agent_id=0):
         if args.cell_type == "darts" and genotype is None:
             raise ValueError("Expected genotype in Sender with option 'darts'")
@@ -19,9 +19,9 @@ class SenderAgent(BaseAgent):
         self.genotype = genotype
         self.convergence = 100
 
-        vocab = ShapesVocab(args.vocab_size)
+        vocab = AgentVocab(args.vocab_size)
 
-        sender = Sender(
+        sender = ShapesSender(
             args.vocab_size,
             args.max_length,
             vocab.bound_idx,
@@ -38,9 +38,9 @@ class SenderAgent(BaseAgent):
         """
         self.genotype = new_genotype
 
-        vocab = ShapesVocab(self.args.vocab_size)
+        vocab = AgentVocab(self.args.vocab_size)
 
-        model = Sender(
+        model = ShapesSender(
             self.args.vocab_size,
             self.args.max_length,
             vocab.bound_idx,
@@ -66,10 +66,10 @@ class SenderAgent(BaseAgent):
         return img
 
 
-class ReceiverAgent(BaseAgent):
+class ShapesReceiverAgent(BaseAgent):
     def __init__(self, run_folder, args, genotype=None, agent_id=0):
         if args.cell_type == "darts" and genotype is None:
-            raise ValueError("Expected genotype in Sender with option 'darts'")
+            raise ValueError("Expected genotype in Receiver with option 'darts'")
 
         self.run_folder = run_folder
         self.agent_id = agent_id
@@ -77,7 +77,7 @@ class ReceiverAgent(BaseAgent):
         super().__init__(filename, args)
         self.genotype = genotype
 
-        receiver = Receiver(
+        receiver = ShapesReceiver(
             args.vocab_size,
             embedding_size=args.embedding_size,
             cell_type=args.cell_type,
@@ -91,9 +91,9 @@ class ReceiverAgent(BaseAgent):
         """
         self.genotype = new_genotype
 
-        vocab = ShapesVocab(self.args.vocab_size)
+        vocab = AgentVocab(self.args.vocab_size)
 
-        model = Receiver(
+        model = ShapesReceiver(
             self.args.vocab_size,
             embedding_size=self.args.embedding_size,
             cell_type=self.args.cell_type,

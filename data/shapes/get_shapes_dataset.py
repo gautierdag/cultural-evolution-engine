@@ -3,7 +3,7 @@ import numpy as np
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import BatchSampler
 
-from .ImageDataset import ImageDataset, ImagesSampler
+from .ShapesDataset import ShapesDataset, ImagesSampler
 from .generate_shapes import generate_shapes_dataset
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -24,13 +24,13 @@ def get_dataloaders(batch_size=16, k=3, debug=False, dataset="all"):
     if debug:
         train_features = train_features[:10000]
 
-    train_dataset = ImageDataset(train_features)
+    train_dataset = ShapesDataset(train_features)
 
     # All features are normalized with train mean and std
-    valid_dataset = ImageDataset(
+    valid_dataset = ShapesDataset(
         valid_features, mean=train_dataset.mean, std=train_dataset.std
     )
-    test_dataset = ImageDataset(
+    test_dataset = ShapesDataset(
         test_features, mean=train_dataset.mean, std=train_dataset.std
     )
 

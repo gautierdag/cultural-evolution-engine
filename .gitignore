@@ -3,6 +3,7 @@ runs/
 experiments/
 
 *.png
+*.pkl
 *.vscode
 *.npy
 *.pckl

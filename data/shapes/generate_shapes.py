@@ -7,7 +7,7 @@ import torch
 import torchvision.models as models
 
 from .generate_images import get_image
-from .feature_extractor import get_features
+from ..feature_extractor import get_features
 
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -87,3 +87,7 @@ def generate_shapes_dataset():
         images = np.load("{}/{}.input.npy".format(folder_name, set_name))
         features = get_features(vgg16, images)
         np.save("{}/{}_features.npy".format(dir_path, set_name), features)
+
+
+if __name__ == "__main__":
+    generate_shapes_dataset()

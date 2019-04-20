@@ -7,9 +7,9 @@ import sys
 import torch
 
 from tensorboardX import SummaryWriter
-from model import Receiver, Sender, Trainer, DARTS, generate_genotype
+from model import ShapesReceiver, ShapesSender, ShapesTrainer, DARTS, generate_genotype
 from utils import *
-from data.shapes import ShapesVocab, get_shapes_dataset
+from data import AgentVocab, get_shapes_dataset
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -17,7 +17,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def parse_arguments(args):
     # Training settings
     parser = argparse.ArgumentParser(
-        description="Training Sender Receiver Agent on Shapes"
+        description="Training Sender/Receiver Agent on a task"
     )
     parser.add_argument(
         "--debugging", help="Enable debugging mode (default: False", action="store_true"
@@ -91,6 +91,13 @@ def parse_arguments(args):
         metavar="N",
         help="Size of darts cell to use with random-darts (default: 8)",
     )
+    parser.add_argument(
+        "--task",
+        type=str,
+        default="shapes",
+        metavar="S",
+        help="task/dataset to test on (default: shapes). Possible options: shapes or obverter",
+    )
 
     args = parser.parse_args(args)
 
@@ -107,7 +114,7 @@ def baseline(args):
     seed_torch(seed=args.seed)
 
     # Load Vocab
-    vocab = ShapesVocab(args.vocab_size)
+    vocab = AgentVocab(args.vocab_size)
 
     model_name = get_filename_from_baseline_params(args)
     run_folder = "runs/" + model_name
@@ -130,7 +137,7 @@ def baseline(args):
         genotype = generate_genotype(num_nodes=args.num_nodes)
     print(genotype)
 
-    sender = Sender(
+    sender = ShapesSender(
         args.vocab_size,
         args.max_length,
         vocab.bound_idx,
@@ -139,7 +146,7 @@ def baseline(args):
         cell_type=cell_type,
         genotype=genotype,
     )
-    receiver = Receiver(
+    receiver = ShapesReceiver(
         args.vocab_size,
         embedding_size=args.embedding_size,
         cell_type=cell_type,
@@ -160,7 +167,7 @@ def baseline(args):
 
     sender = torch.load(sender_file)
     receiver = torch.load(receiver_file)
-    model = Trainer(sender, receiver)
+    model = ShapesTrainer(sender, receiver)
 
     pytorch_total_params = sum(p.numel() for p in model.parameters())
     print("Total number of parameters: {}".format(pytorch_total_params))
@@ -204,7 +211,7 @@ def baseline(args):
             print("Converged in epoch {}".format(epoch))
             break
 
-    best_model = Trainer(sender, receiver)
+    best_model = ShapesTrainer(sender, receiver)
     state = torch.load(
         "{}/best_model".format(run_folder),
         map_location=lambda storage, location: storage,
