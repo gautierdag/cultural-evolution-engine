@@ -8,7 +8,7 @@ import warnings
 
 from tensorboardX import SummaryWriter
 from utils import *
-from data.shapes import get_shapes_dataset, get_shapes_metadata, get_shapes_features
+from data.shapes import get_shapes_dataloader, get_shapes_metadata, get_shapes_features
 
 from ShapesCEE import ShapesCEE
 
@@ -176,10 +176,10 @@ def main(args):
     writer = SummaryWriter(log_dir=experiment_folder + "/" + str(args.seed))
 
     # Load data
-    train_data, valid_data, test_data = get_shapes_dataset(
+    train_data, valid_data, test_data = get_shapes_dataloader(
         batch_size=args.batch_size, k=args.k, debug=args.debugging
     )
-    eval_train_data = get_shapes_dataset(
+    eval_train_data = get_shapes_dataloader(
         batch_size=args.batch_size, k=args.k, debug=args.debugging, dataset="train"
     )
     valid_meta_data = get_shapes_metadata(dataset="valid")
@@ -252,7 +252,7 @@ def main(args):
                 writer.add_scalar("rsa_si", metrics["rsa_si"], i)
                 writer.add_scalar("rsa_ri", metrics["rsa_ri"], i)
                 writer.add_scalar("rsa_sm", metrics["rsa_sm"], i)
-                
+
                 writer.add_scalar("avg_language_entropy", metrics["l_entropy"], i)
                 writer.add_scalar("pseudo_tre", metrics["pseudo_tre"], i)
 

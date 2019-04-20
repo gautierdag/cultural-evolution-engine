@@ -1,2 +1,2 @@
-from .get_shapes_dataset import get_shapes_dataset, get_shapes_features
+from .get_shapes_dataloader import get_shapes_dataloader, get_shapes_features
 from .get_shapes_metadata import get_shapes_metadata

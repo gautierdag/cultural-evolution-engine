@@ -151,7 +151,7 @@ def get_filename_from_baseline_params(params):
     """
     Generates a filename from baseline params (see baseline.py)
     """
-    name = "model"
+    name = params.task
     name += "_e_{}".format(params.embedding_size)
     name += "_max_len_{}".format(params.max_length)
     name += "_k_{}".format(params.k)

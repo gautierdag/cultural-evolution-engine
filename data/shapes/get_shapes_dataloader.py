@@ -73,7 +73,7 @@ def get_dataloaders(batch_size=16, k=3, debug=False, dataset="all"):
         return train_data, valid_data, test_data
 
 
-def get_shapes_dataset(batch_size=16, k=3, debug=False, dataset="all"):
+def get_shapes_dataloader(batch_size=16, k=3, debug=False, dataset="all"):
     """
     Args:
         batch_size (int, opt): batch size of dataloaders

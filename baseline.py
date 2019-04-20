@@ -7,9 +7,9 @@ import sys
 import torch
 
 from tensorboardX import SummaryWriter
-from model import ShapesReceiver, ShapesSender, ShapesTrainer, DARTS, generate_genotype
+from model import ShapesReceiver, ShapesSender, ShapesTrainer, ObverterReceiver, ObverterSender, ObverterTrainer, generate_genotype
 from utils import *
-from data import AgentVocab, get_shapes_dataset
+from data import AgentVocab, get_shapes_dataloader, get_obverter_dataloader
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -74,13 +74,7 @@ def parse_arguments(args):
     )
     parser.add_argument(
         "--darts",
-        help="Use darts instead of random LSTMCell (default: False)",
-        action="store_true",
-        default=False,
-    )
-    parser.add_argument(
-        "--random-darts",
-        help="Use random architecture from DARTS space (default: False)",
+        help="Use random architecture from DARTS space instead of random LSTMCell (default: False)",
         action="store_true",
         default=False,
     )
@@ -96,11 +90,19 @@ def parse_arguments(args):
         type=str,
         default="shapes",
         metavar="S",
-        help="task/dataset to test on (default: shapes). Possible options: shapes or obverter",
+        help="task to test on (default: shapes). Possible options: shapes or obverter",
+    )
+    parser.add_argument(
+        "--dataset-type",
+        type=str,
+        default="meta",
+        metavar="S",
+        help="type of input used by dataset pick from raw/features/meta/meta_combined (default meta)",
     )
 
     args = parser.parse_args(args)
 
+    args.task = "obverter"
     if args.debugging:
         args.epochs = 10
         args.max_length = 5
@@ -108,17 +110,79 @@ def parse_arguments(args):
     return args
 
 
+def get_sender_receiver(args):
+    # Load Vocab
+    vocab = AgentVocab(args.vocab_size)
+
+    if args.task == "shapes"
+        cell_type = "lstm"
+        genotype = {}
+        if args.darts:
+            cell_type = "darts"
+            genotype = generate_genotype(num_nodes=args.num_nodes)
+            print(genotype)
+
+        sender = ShapesSender(
+            args.vocab_size,
+            args.max_length,
+            vocab.bound_idx,
+            embedding_size=args.embedding_size,
+            greedy=args.greedy,
+            cell_type=cell_type,
+            genotype=genotype,
+        )
+        receiver = ShapesReceiver(
+            args.vocab_size,
+            embedding_size=args.embedding_size,
+            cell_type=cell_type,
+            genotype=genotype,
+        )
+    elif args.task == "obverter":
+        sender = ObverterSender(
+            args.vocab_size,
+            args.max_length,
+            vocab.bound_idx,
+            embedding_size=args.embedding_size,
+            greedy=args.greedy,
+        )
+        receiver = ObverterReceiver(
+            args.vocab_size,
+            embedding_size=args.embedding_size,
+        )
+    else:
+        raise ValueError("Unsupported task type : {}".formate(args.task))
+    return sender, receiver
+
+
+def get_trainer(sender, receiver, args):
+    if args.task == "shapes":
+        return ShapesTrainer(sender, receiver)
+    if args.task == "obverter":
+        return ObverterTrainer(sender, receiver)
+
+
 def baseline(args):
 
     args = parse_arguments(args)
     seed_torch(seed=args.seed)
 
-    # Load Vocab
-    vocab = AgentVocab(args.vocab_size)
-
     model_name = get_filename_from_baseline_params(args)
     run_folder = "runs/" + model_name
     writer = SummaryWriter(log_dir=run_folder + "/" + str(args.seed))
+
+    # Load data
+    if args.task == "shapes":
+        train_data, valid_data, test_data = get_shapes_dataloader(
+            batch_size=args.batch_size, k=args.k, debug=args.debugging
+        )
+    elif args.task == "obverter":
+        train_data, valid_data, test_data, meta_vocabs = get_obverter_dataloader(
+            dataset_type=args.dataset_type,
+            debug=args.debugging,
+            batch_size=args.batch_size,
+        )
+    else:
+        raise ValueError("Unsupported task type : {}".formate(args.task))
 
     # Print info
     print("----------------------------------------")
@@ -127,47 +191,16 @@ def baseline(args):
             model_name, args.vocab_size, args.max_length
         )
     )
-    cell_type = "lstm"
-    genotype = {}
-    if args.darts:
-        cell_type = "darts"
-        genotype = DARTS
-    if args.random_darts:
-        cell_type = "darts"
-        genotype = generate_genotype(num_nodes=args.num_nodes)
-    print(genotype)
-
-    sender = ShapesSender(
-        args.vocab_size,
-        args.max_length,
-        vocab.bound_idx,
-        embedding_size=args.embedding_size,
-        greedy=args.greedy,
-        cell_type=cell_type,
-        genotype=genotype,
-    )
-    receiver = ShapesReceiver(
-        args.vocab_size,
-        embedding_size=args.embedding_size,
-        cell_type=cell_type,
-        genotype=genotype,
-    )
+    # get sender and receiver models and save them
+    sender, receiver = get_sender_receiver(args)
     print(sender)
     print(receiver)
-
     sender_file = "{}/sender.p".format(run_folder)
     receiver_file = "{}/receiver.p".format(run_folder)
     torch.save(sender, sender_file)
     torch.save(receiver, receiver_file)
 
-    # Load data
-    train_data, valid_data, test_data = get_shapes_dataset(
-        batch_size=args.batch_size, k=args.k, debug=args.debugging
-    )
-
-    sender = torch.load(sender_file)
-    receiver = torch.load(receiver_file)
-    model = ShapesTrainer(sender, receiver)
+    model = get_trainer(sender, receiver, args)
 
     pytorch_total_params = sum(p.numel() for p in model.parameters())
     print("Total number of parameters: {}".format(pytorch_total_params))
@@ -211,7 +244,7 @@ def baseline(args):
             print("Converged in epoch {}".format(epoch))
             break
 
-    best_model = ShapesTrainer(sender, receiver)
+    best_model = get_trainer(sender, receiver, args)
     state = torch.load(
         "{}/best_model".format(run_folder),
         map_location=lambda storage, location: storage,

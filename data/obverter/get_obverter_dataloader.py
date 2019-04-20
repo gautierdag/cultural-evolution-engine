@@ -20,8 +20,8 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 
 TRAIN_DATASET_SIZE = 10000
 VALID_DATASET_SIZE = 5000
-DEBUG_TRAIN_DATASET_SIZE = 1000
-DEBUG_VALID_DATASET_SIZE = 500
+TEST_DATASET_SIZE = 5000
+
 N_DATA_SAMPLES = 100
 
 colors = {
@@ -152,7 +152,11 @@ def generate_dataset(images_cache, dataset_length=1000):
 
 
 def get_obverter_dataset(
-    dataset_type="features", dataset_length=1000, col_vocab=None, obj_vocab=None
+    dataset_type="features",
+    dataset_length=1000,
+    dataset_name="train",
+    col_vocab=None,
+    obj_vocab=None,
 ):
     """
     Args: 
@@ -165,8 +169,10 @@ def get_obverter_dataset(
     """
     images_dict = load_images_dict()
 
-    dataset_path = "{}/dataset_{}.npy".format(dir_path, dataset_length)
-    metadata_path = "{}/metadata_{}.npy".format(dir_path, dataset_length)
+    dataset_path = "{}/{}_dataset_{}.npy".format(dir_path, dataset_name, dataset_length)
+    metadata_path = "{}/{}_metadata_{}.npy".format(
+        dir_path, dataset_name, dataset_length
+    )
     if os.path.isfile(dataset_path) and os.path.isfile(metadata_path):
         print("Loading dataset and metadata from file")
         dataset = np.load(dataset_path)
@@ -217,24 +223,35 @@ def get_obverter_dataset(
         raise NotImplementedError()
 
 
-def get_obverter_dataloader(dataset_type="meta", debugging=False, batch_size=64):
-    length_train = TRAIN_DATASET_SIZE * (0.1 if debugging else 1)
-    length_valid = VALID_DATASET_SIZE * (0.1 if debugging else 1)
+def get_obverter_dataloader(dataset_type="meta", debug=False, batch_size=64):
+    length_train = TRAIN_DATASET_SIZE * (0.1 if debug else 1)
+    length_valid = VALID_DATASET_SIZE * (0.1 if debug else 1)
+    length_test = TEST_DATASET_SIZE * (0.1 if debug else 1)
 
     train_dataset, col_vocab, obj_vocab = get_obverter_dataset(
-        dataset_type=dataset_type, dataset_length=length_train
+        dataset_type=dataset_type, dataset_length=length_train, dataset_name="train"
     )
+
     valid_dataset, _, _ = get_obverter_dataset(
         dataset_type=dataset_type,
         dataset_length=length_valid,
+        dataset_name="valid",
+        col_vocab=col_vocab,  # use vocab from train
+        obj_vocab=obj_vocab,  # use vocab from train
+    )
+    test_dataset, _, _ = get_obverter_dataset(
+        dataset_type=dataset_type,
+        dataset_length=length_test,
+        dataset_name="test",
         col_vocab=col_vocab,  # use vocab from train
         obj_vocab=obj_vocab,  # use vocab from train
     )
 
-    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
-    valid_loader = DataLoader(valid_dataset, batch_size=64, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    valid_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
-    return train_loader, valid_loader, (col_vocab, obj_vocab)
+    return train_loader, valid_loader, test_loader, (col_vocab, obj_vocab)
 
 
 if __name__ == "__main__":
