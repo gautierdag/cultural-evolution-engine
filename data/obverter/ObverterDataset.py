@@ -23,9 +23,9 @@ class ObverterDataset:
             first_image = self.features[idx][0]
             second_image = self.features[idx][1]
         else:
-            first_image = self.features[self.dataset[idx][0]]
-            second_image = self.features[self.dataset[idx][1]]
-        target = self.dataset[idx][2]  # label
+            first_image = self.features[self.dataset[0][idx]]
+            second_image = self.features[self.dataset[1][idx]]
+        target = self.dataset[2][idx]  # label
         return (first_image, second_image, target)
 
     def __len__(self):

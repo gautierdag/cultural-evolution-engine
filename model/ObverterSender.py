@@ -17,6 +17,7 @@ class ObverterMetaVisualModule(nn.Module):
         object_vocab_size=None,
         color_vocab_size=None,
     ):
+        super(ObverterMetaVisualModule, self).__init__()
         self.dataset_type = dataset_type
         self.hidden_size = hidden_size
 
@@ -45,11 +46,15 @@ class ObverterMetaVisualModule(nn.Module):
             self.process_input = nn.Linear(in_features, hidden_size)
 
         if dataset_type == "meta":
-            self.process_input_color = nn.Embedding(color_vocab_size, hidden_size / 2)
-            self.process_input_object = nn.Embedding(object_vocab_size, hidden_size / 2)
+            self.process_input_color = nn.Embedding(
+                color_vocab_size, int(hidden_size / 2)
+            )
+            self.process_input_object = nn.Embedding(
+                object_vocab_size, int(hidden_size / 2)
+            )
 
         if dataset_type == "meta_combined":
-            self.process_input == nn.Embedding(object_vocab_size, hidden_size / 2)
+            self.process_input == nn.Embedding(object_vocab_size, int(hidden_size / 2))
 
     def forward(self, input):
         batch_size = input.shape[0]
@@ -198,16 +203,17 @@ class ObverterSender(nn.Module):
         mask *= seq_lengths == initial_length
         seq_lengths[mask.nonzero()] = seq_pos + 1  # start always token appended
 
-    def forward(self, tau, hidden_state):
+    def forward(self, image_representation, tau):
         """
         Performs a forward pass. If training, use Gumbel Softmax (hard) for sampling, else use
         discrete sampling.
         Hidden state here represents the encoded image/metadata/features - initializes the RNN from it.
         """
-        hidden_state = self.obverter_module(hidden_state)
+
+        image_representation = self.obverter_module(image_representation)
 
         # initialize the rnn using the obverter module
-        state, batch_size = self._init_state(hidden_state, type(self.rnn))
+        state, batch_size = self._init_state(image_representation, type(self.rnn))
 
         # Init output
         if self.training:

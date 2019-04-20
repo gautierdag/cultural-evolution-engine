@@ -34,8 +34,12 @@ def train_one_batch(model, batch, optimizer, tau=1.2):
     """
     model.train()
     optimizer.zero_grad()
-    target, distractors = batch
-    loss, acc, _ = model(target, distractors, tau=tau)
+    if len(batch) == 2:  # shapes
+        target, distractors = batch
+        loss, acc, _ = model(target, distractors, tau=tau)
+    if len(batch) == 3:  # obverter task
+        first_image, second_image, label = batch
+        loss, acc, _ = model(first_image, second_image, label, tau=tau)
     loss.backward()
     optimizer.step()
 

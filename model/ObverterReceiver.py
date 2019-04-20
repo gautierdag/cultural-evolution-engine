@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from .DARTSCell import DARTSCell
+from .ObverterSender import ObverterMetaVisualModule
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -14,6 +15,10 @@ class ObverterReceiver(nn.Module):
         hidden_size=512,
         cell_type="lstm",
         genotype=None,
+        dataset_type="meta",
+        in_features=1000,
+        object_vocab_size=None,
+        color_vocab_size=None,
     ):
         super().__init__()
 
@@ -32,6 +37,20 @@ class ObverterReceiver(nn.Module):
 
         self.embedding = nn.Parameter(
             torch.empty((vocab_size, embedding_size), dtype=torch.float32)
+        )
+
+        self.obverter_module = ObverterMetaVisualModule(
+            hidden_size=hidden_size,
+            dataset_type=dataset_type,
+            in_features=in_features,
+            object_vocab_size=object_vocab_size,
+            color_vocab_size=color_vocab_size,
+        )
+
+        self.output_layer = nn.Sequential(
+            nn.Linear(2 * hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, 2),
         )
 
         self.reset_parameters()
@@ -70,4 +89,8 @@ class ObverterReceiver(nn.Module):
         if self.cell_type == "lstm":
             h = h[0]  # keep only hidden state
 
-        return h, emb
+        image_representation = self.obverter_module(input)
+        combined = torch.cat((h, image_representation), dim=1)
+        prediction = self.output_layer(combined)
+
+        return prediction, emb

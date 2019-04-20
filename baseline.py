@@ -7,7 +7,15 @@ import sys
 import torch
 
 from tensorboardX import SummaryWriter
-from model import ShapesReceiver, ShapesSender, ShapesTrainer, ObverterReceiver, ObverterSender, ObverterTrainer, generate_genotype
+from model import (
+    ShapesReceiver,
+    ShapesSender,
+    ShapesTrainer,
+    ObverterReceiver,
+    ObverterSender,
+    ObverterTrainer,
+    generate_genotype,
+)
 from utils import *
 from data import AgentVocab, get_shapes_dataloader, get_obverter_dataloader
 
@@ -102,6 +110,9 @@ def parse_arguments(args):
 
     args = parser.parse_args(args)
 
+    args.color_vocab_size = None
+    args.object_vocab_size = None
+
     args.task = "obverter"
     if args.debugging:
         args.epochs = 10
@@ -114,7 +125,7 @@ def get_sender_receiver(args):
     # Load Vocab
     vocab = AgentVocab(args.vocab_size)
 
-    if args.task == "shapes"
+    if args.task == "shapes":
         cell_type = "lstm"
         genotype = {}
         if args.darts:
@@ -144,10 +155,16 @@ def get_sender_receiver(args):
             vocab.bound_idx,
             embedding_size=args.embedding_size,
             greedy=args.greedy,
+            dataset_type=args.dataset_type,
+            object_vocab_size=args.object_vocab_size,
+            color_vocab_size=args.color_vocab_size,
         )
         receiver = ObverterReceiver(
             args.vocab_size,
             embedding_size=args.embedding_size,
+            dataset_type=args.dataset_type,
+            object_vocab_size=args.object_vocab_size,
+            color_vocab_size=args.color_vocab_size,
         )
     else:
         raise ValueError("Unsupported task type : {}".formate(args.task))
@@ -181,6 +198,9 @@ def baseline(args):
             debug=args.debugging,
             batch_size=args.batch_size,
         )
+        if args.dataset_type == "meta" or args.dataset_type == "meta_combined":
+            args.color_vocab_size = len(meta_vocabs[0].itos)
+            args.object_vocab_size = len(meta_vocabs[1].itos)
     else:
         raise ValueError("Unsupported task type : {}".formate(args.task))
 
