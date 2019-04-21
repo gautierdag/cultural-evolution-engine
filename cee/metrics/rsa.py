@@ -38,6 +38,10 @@ def representation_similarity_analysis(
     # one hot encode messages by taking padding into account and transforming to one hot
     messages = one_hot(generated_messages)
 
+    # if input is metadata
+    if test_images is None:
+        test_images = test_metadata
+
     # this is needed since some samples might have been dropped during training to maintain batch_size
     test_images = test_images[: len(messages)]
     test_metadata = test_metadata[: len(messages)]

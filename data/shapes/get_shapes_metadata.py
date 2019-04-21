@@ -41,3 +41,8 @@ def get_shapes_metadata(dataset="test"):
     )
 
     return one_hot_derivations
+
+
+if __name__ == "__main__":
+    m = get_shapes_metadata()
+    print(m.shape)

@@ -5,7 +5,7 @@ import os
 
 import torch
 import torchvision.models as models
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 
 from PIL import Image
 from tqdm import tqdm
@@ -169,10 +169,8 @@ def get_obverter_dataset(
     """
     images_dict = load_images_dict()
 
-    dataset_path = "{}/{}_dataset_{}.npy".format(dir_path, dataset_name, dataset_length)
-    metadata_path = "{}/{}_metadata_{}.npy".format(
-        dir_path, dataset_name, dataset_length
-    )
+    dataset_path = "{}/{}_dataset.npy".format(dir_path, dataset_name)
+    metadata_path = "{}/{}_metadata.npy".format(dir_path, dataset_name)
     if os.path.isfile(dataset_path) and os.path.isfile(metadata_path):
         print("Loading dataset and metadata from file")
         dataset = np.load(dataset_path)
@@ -224,32 +222,36 @@ def get_obverter_dataset(
 
 
 def get_obverter_dataloader(dataset_type="meta", debug=False, batch_size=64):
-    length_train = TRAIN_DATASET_SIZE * (0.1 if debug else 1)
-    length_valid = VALID_DATASET_SIZE * (0.1 if debug else 1)
-    length_test = TEST_DATASET_SIZE * (0.1 if debug else 1)
 
     train_dataset, col_vocab, obj_vocab = get_obverter_dataset(
-        dataset_type=dataset_type, dataset_length=length_train, dataset_name="train"
+        dataset_type=dataset_type,
+        dataset_length=TRAIN_DATASET_SIZE,
+        dataset_name="train",
     )
 
     valid_dataset, _, _ = get_obverter_dataset(
         dataset_type=dataset_type,
-        dataset_length=length_valid,
+        dataset_length=VALID_DATASET_SIZE,
         dataset_name="valid",
         col_vocab=col_vocab,  # use vocab from train
         obj_vocab=obj_vocab,  # use vocab from train
     )
     test_dataset, _, _ = get_obverter_dataset(
         dataset_type=dataset_type,
-        dataset_length=length_test,
+        dataset_length=TEST_DATASET_SIZE,
         dataset_name="test",
         col_vocab=col_vocab,  # use vocab from train
         obj_vocab=obj_vocab,  # use vocab from train
     )
 
+    if debug:  # reduced dataset sizes if debugging
+        train_dataset = Subset(train_dataset, range(int(TRAIN_DATASET_SIZE * 0.1)))
+        valid_dataset = Subset(valid_dataset, range(int(VALID_DATASET_SIZE * 0.1)))
+        test_dataset = Subset(test_dataset, range(int(TEST_DATASET_SIZE * 0.1)))
+
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    valid_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+    valid_loader = DataLoader(valid_dataset, batch_size=batch_size)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size)
 
     return train_loader, valid_loader, test_loader, (col_vocab, obj_vocab)
 

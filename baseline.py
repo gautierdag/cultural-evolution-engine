@@ -18,6 +18,10 @@ from model import (
 )
 from utils import *
 from data import AgentVocab, get_shapes_dataloader, get_obverter_dataloader
+from data.shapes import get_shapes_metadata, get_shapes_features
+from data.obverter import get_obverter_metadata
+
+from cee.metrics import representation_similarity_analysis, language_entropy
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -168,7 +172,7 @@ def get_sender_receiver(args):
             color_vocab_size=args.color_vocab_size,
         )
     else:
-        raise ValueError("Unsupported task type : {}".formate(args.task))
+        raise ValueError("Unsupported task type : {}".format(args.task))
     return sender, receiver
 
 
@@ -231,19 +235,49 @@ def baseline(args):
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     early_stopping = EarlyStopping(mode="max")
 
+    if args.task == "obverter":
+        valid_meta_data = get_obverter_metadata(dataset="valid")
+        valid_features = None
+
+    if args.task == "shapes":
+        valid_meta_data = get_shapes_metadata(dataset="valid")
+        valid_features = get_shapes_features(dataset="valid")
+
     # Train
     for epoch in range(args.epochs):
         loss_meter, acc_meter = train_one_epoch(model, train_data, optimizer)
-        eval_loss_meter, eval_acc_meter, entropy_meter, eval_messages, _, _ = evaluate(
+
+        eval_loss_meter, eval_acc_meter, eval_entropy_meter, eval_messages, hidden_sender, hidden_receiver = evaluate(
             model, valid_data
         )
 
+        num_unique_messages = len(torch.unique(eval_messages, dim=0))
+        eval_messages = eval_messages.cpu().numpy()
+
+        rsa_sr, rsa_si, rsa_ri, rsa_sm, topological_similarity, pseudo_tre = representation_similarity_analysis(
+            valid_features,
+            valid_meta_data,
+            eval_messages,
+            hidden_sender,
+            hidden_receiver,
+            tre=True,
+        )
+        l_entropy = language_entropy(eval_messages)
+
         if writer is not None:
-            writer.add_scalar("avg_train_loss", loss_meter.avg, epoch)
-            writer.add_scalar("avg_train_acc", acc_meter.avg, epoch)
+            writer.add_scalar("train_avg_loss", loss_meter.avg, epoch)
+            writer.add_scalar("train_avg_acc", acc_meter.avg, epoch)
             writer.add_scalar("avg_loss", eval_loss_meter.avg, epoch)
             writer.add_scalar("avg_acc", eval_acc_meter.avg, epoch)
-            writer.add_scalar("avg_entropy", entropy_meter.avg, epoch)
+            writer.add_scalar("avg_entropy", eval_entropy_meter.avg, epoch)
+            writer.add_scalar("num_unique_messages", num_unique_messages, epoch)
+            writer.add_scalar("rsa_sr", rsa_sr, epoch)
+            writer.add_scalar("rsa_si", rsa_si, epoch)
+            writer.add_scalar("rsa_ri", rsa_ri, epoch)
+            writer.add_scalar("rsa_sm", rsa_sm, epoch)
+            writer.add_scalar("topological_similarity", topological_similarity, epoch)
+            writer.add_scalar("pseudo_tre", pseudo_tre, epoch)
+            writer.add_scalar("language_entropy", l_entropy, epoch)
 
         early_stopping.step(eval_acc_meter.avg)
         if early_stopping.num_bad_epochs == 0:
