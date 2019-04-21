@@ -36,11 +36,11 @@ class ObverterMetaVisualModule(nn.Module):
                 nn.Conv2d(n_filters, n_filters, 3, stride=2),
                 nn.BatchNorm2d(n_filters),
                 nn.ReLU(),
-                nn.Conv2d(n_filters, n_filters, 3, stride=2),
+                nn.Conv2d(n_filters, n_filters, 3),
                 nn.BatchNorm2d(n_filters),
                 nn.ReLU(),
             )
-            self.linear_out = nn.Linear(180, hidden_size)
+            self.linear_out = nn.Linear(500, hidden_size)
 
         if dataset_type == "features":
             self.process_input = nn.Linear(in_features, hidden_size)
