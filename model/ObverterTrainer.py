@@ -40,6 +40,7 @@ class ObverterTrainer(nn.Module):
 
         first_image = first_image.to(device)
         second_image = second_image.to(device)
+        label = label.to(device)
 
         messages, lengths, entropy, h_s = self.sender(first_image, tau)
         messages = self._pad(messages, lengths)
