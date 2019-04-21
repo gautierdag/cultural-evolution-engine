@@ -28,11 +28,13 @@ def parse_arguments(args):
         description="Training Sender/Receiver Agent on a task"
     )
     parser.add_argument(
-        "--debugging", help="Enable debugging mode (default: False", action="store_true"
+        "--debugging",
+        help="Enable debugging mode (default: False)",
+        action="store_true",
     )
     parser.add_argument(
         "--greedy",
-        help="Use argmax at prediction time instead of sampling (default: False",
+        help="Use argmax at prediction time instead of sampling (default: False)",
         action="store_true",
     )
     parser.add_argument(
@@ -55,7 +57,7 @@ def parse_arguments(args):
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=1024,
+        default=256,
         metavar="N",
         help="input batch size for training (default: 1024)",
     )
@@ -105,7 +107,7 @@ def parse_arguments(args):
         type=str,
         default="meta",
         metavar="S",
-        help="type of input used by dataset pick from raw/features/meta/meta_combined (default meta)",
+        help="type of input used by dataset pick from raw/features/meta/combined (default meta)",
     )
 
     args = parser.parse_args(args)
@@ -113,7 +115,6 @@ def parse_arguments(args):
     args.color_vocab_size = None
     args.object_vocab_size = None
 
-    args.task = "obverter"
     if args.debugging:
         args.epochs = 10
         args.max_length = 5
@@ -198,7 +199,7 @@ def baseline(args):
             debug=args.debugging,
             batch_size=args.batch_size,
         )
-        if args.dataset_type == "meta" or args.dataset_type == "meta_combined":
+        if args.dataset_type == "meta" or args.dataset_type == "combined":
             args.color_vocab_size = len(meta_vocabs[0].itos)
             args.object_vocab_size = len(meta_vocabs[1].itos)
     else:

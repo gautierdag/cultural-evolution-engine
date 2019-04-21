@@ -16,7 +16,6 @@ class ObverterReceiver(nn.Module):
         cell_type="lstm",
         genotype=None,
         dataset_type="meta",
-        in_features=1000,
         object_vocab_size=None,
         color_vocab_size=None,
     ):
@@ -42,7 +41,6 @@ class ObverterReceiver(nn.Module):
         self.obverter_module = ObverterMetaVisualModule(
             hidden_size=hidden_size,
             dataset_type=dataset_type,
-            in_features=in_features,
             object_vocab_size=object_vocab_size,
             color_vocab_size=color_vocab_size,
         )

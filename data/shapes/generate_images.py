@@ -10,8 +10,8 @@ CELL_WIDTH = WIDTH / N_CELLS
 CELL_HEIGHT = HEIGHT / N_CELLS
 N_CHANNELS = 3
 
-BIG_RADIUS = CELL_WIDTH * .75 / 2
-SMALL_RADIUS = CELL_WIDTH * .5 / 2
+BIG_RADIUS = CELL_WIDTH * 0.75 / 2
+SMALL_RADIUS = CELL_WIDTH * 0.5 / 2
 
 SHAPE_CIRCLE = 0
 SHAPE_SQUARE = 1
@@ -29,23 +29,23 @@ N_COLORS = COLOR_BLUE + 1
 
 
 def draw(shape, color, size, left, top, ctx):
-    center_x = (left + .5) * CELL_WIDTH
-    center_y = (top + .5) * CELL_HEIGHT
+    center_x = (left + 0.5) * CELL_WIDTH
+    center_y = (top + 0.5) * CELL_HEIGHT
 
     radius = SMALL_RADIUS if size == SIZE_SMALL else BIG_RADIUS
-    radius *= (.9 + np.random.random() * .2)
+    radius *= 0.9 + np.random.random() * 0.2
 
     if color == COLOR_RED:
-        rgb = np.asarray([1., 0., 0.])
+        rgb = np.asarray([1.0, 0.0, 0.0])
     elif color == COLOR_GREEN:
-        rgb = np.asarray([0., 1., 0.])
+        rgb = np.asarray([0.0, 1.0, 0.0])
     else:
-        rgb = np.asarray([0., 0., 1.])
-    rgb += (np.random.random(size=(3,)) * .4 - .2)
-    rgb = np.clip(rgb, 0., 1.)
+        rgb = np.asarray([0.0, 0.0, 1.0])
+    rgb += np.random.random(size=(3,)) * 0.4 - 0.2
+    rgb = np.clip(rgb, 0.0, 1.0)
 
     if shape == SHAPE_CIRCLE:
-        ctx.arc(center_x, center_y, radius, 0, 2*np.pi)
+        ctx.arc(center_x, center_y, radius, 0, 2 * np.pi)
     elif shape == SHAPE_SQUARE:
         ctx.new_path()
         ctx.move_to(center_x - radius, center_y - radius)
@@ -75,10 +75,9 @@ def get_image(seed, shape=-1, color=-1, n=1, nOtherShapes=0, shouldOthersBeSame=
 
     data = np.zeros((WIDTH, HEIGHT, 4), dtype=np.uint8)
     PIXEL_SCALE = 2
-    surf = cairo.ImageSurface.create_for_data(
-        data, cairo.FORMAT_ARGB32, WIDTH, HEIGHT)
+    surf = cairo.ImageSurface.create_for_data(data, cairo.FORMAT_ARGB32, WIDTH, HEIGHT)
     ctx = cairo.Context(surf)
-    ctx.set_source_rgb(0., 0., 0.)
+    ctx.set_source_rgb(0.0, 0.0, 0.0)
     ctx.paint()
 
     shapes = [[None for c in range(N_CELLS)] for r in range(N_CELLS)]
@@ -97,13 +96,13 @@ def get_image(seed, shape=-1, color=-1, n=1, nOtherShapes=0, shouldOthersBeSame=
         colors[r][c] = color
         sizes[r][c] = np.random.randint(N_SIZES)
 
-        draw(shapes[r][c],
-             colors[r][c],
-             sizes[r][c],
-             c,
-             r,
-             ctx)
+        draw(shapes[r][c], colors[r][c], sizes[r][c], c, r, ctx)
 
-    metadata = {'shapes': shapes, 'colors': colors, 'sizes': sizes}
+    metadata = {"shapes": shapes, "colors": colors, "sizes": sizes}
 
     return Image(shapes, colors, sizes, data, metadata)
+
+
+if __name__ == "__main__":
+    i = get_image(42)
+    print(i)

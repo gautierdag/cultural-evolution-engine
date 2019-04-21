@@ -34,6 +34,7 @@ class ImageDataset(data.Dataset):
 
 
 def get_features(model, images):
+    print("Extracting features")
 
     dataloader = DataLoader(ImageDataset(images), batch_size=BATCH_SIZE)
 

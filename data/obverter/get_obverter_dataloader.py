@@ -161,11 +161,11 @@ def get_obverter_dataset(
     """
     Args: 
         dataset_type: type of data to be returned by dataset object
-                      pick from {"features", "raw", "meta", "meta_combined"}
+                      pick from {"features", "raw", "meta", "combined"}
         dataset_length: number of examples in dataset
         col_vocab: color vocab object (used for metadata)
         obj_vocab: object vocab object (used for metadata)
-        Note when meta_combined the col and obj vocabs are the same
+        Note when combined the col and obj vocabs are the same
     """
     images_dict = load_images_dict()
 
@@ -203,7 +203,7 @@ def get_obverter_dataset(
     elif dataset_type == "raw":
         return ObverterDataset(dataset, images_dict["images"]), col_vocab, obj_vocab
 
-    elif dataset_type == "meta" or dataset_type == "meta_combined":
+    elif dataset_type == "meta" or dataset_type == "combined":
         combined = "combined" in dataset_type
         if col_vocab is None and obj_vocab is None:
             encoded_meta, col_vocab, obj_vocab = encode_metadata(

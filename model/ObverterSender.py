@@ -13,7 +13,7 @@ class ObverterMetaVisualModule(nn.Module):
         self,
         hidden_size=512,
         dataset_type="meta",
-        in_features=1000,
+        in_features=8192,
         object_vocab_size=None,
         color_vocab_size=None,
     ):
@@ -53,8 +53,8 @@ class ObverterMetaVisualModule(nn.Module):
                 object_vocab_size, int(hidden_size / 2)
             )
 
-        if dataset_type == "meta_combined":
-            self.process_input == nn.Embedding(object_vocab_size, int(hidden_size / 2))
+        if dataset_type == "combined":
+            self.process_input = nn.Embedding(object_vocab_size, int(hidden_size / 2))
 
     def forward(self, input):
         batch_size = input.shape[0]
@@ -72,7 +72,7 @@ class ObverterMetaVisualModule(nn.Module):
             embedding = torch.cat((object_embedding, color_embedding), 1)
 
         # process metadata input with same vocab for color/object
-        if self.dataset_type == "meta_combined":
+        if self.dataset_type == "combined":
             embedding = self.process_input(input).view(batch_size, -1)
 
         assert embedding.shape[1] == self.hidden_size
@@ -92,7 +92,6 @@ class ObverterSender(nn.Module):
         cell_type="lstm",
         genotype=None,
         dataset_type="meta",
-        in_features=1000,
         object_vocab_size=None,
         color_vocab_size=None,
     ):
@@ -113,7 +112,6 @@ class ObverterSender(nn.Module):
         self.obverter_module = ObverterMetaVisualModule(
             hidden_size=hidden_size,
             dataset_type=dataset_type,
-            in_features=in_features,
             object_vocab_size=object_vocab_size,
             color_vocab_size=color_vocab_size,
         )
