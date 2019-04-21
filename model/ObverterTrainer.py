@@ -48,7 +48,10 @@ class ObverterTrainer(nn.Module):
         loss = self.loss(prediction, label)
 
         # Calculate accuracy
-        accuracy = torch.tensor(0)
+        accuracy = (
+            torch.sum(torch.argmax(prediction, dim=1) == label).type(torch.float)
+            / batch_size
+        )
 
         if self.training:
             return loss, accuracy, messages

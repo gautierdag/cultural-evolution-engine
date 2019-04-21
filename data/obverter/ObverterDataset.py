@@ -29,4 +29,4 @@ class ObverterDataset:
         return (first_image, second_image, target)
 
     def __len__(self):
-        return self.dataset.shape[0]
+        return self.dataset.shape[1]

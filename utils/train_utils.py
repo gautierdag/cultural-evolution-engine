@@ -69,8 +69,15 @@ def evaluate(model, data, tau=1.2):
 
     model.eval()
     for d in data:
-        target, distractors = d
-        loss, acc, msg, h_s, h_r, entropy = model(target, distractors, tau=tau)
+        if len(d) == 2:  # shapes
+            target, distractors = d
+            loss, acc, msg, h_s, h_r, entropy = model(target, distractors, tau=tau)
+
+        if len(d) == 3:  # obverter task
+            first_image, second_image, label = d
+            loss, acc, msg, h_s, h_r, entropy = model(
+                first_image, second_image, label, tau=tau
+            )
 
         loss_meter.update(loss.item())
         acc_meter.update(acc.item())
