@@ -42,11 +42,18 @@ def parse_arguments(args):
         action="store_true",
     )
     parser.add_argument(
-        "--epochs",
+        "--iterations",
         type=int,
-        default=100,
+        default=10000,
         metavar="N",
-        help="number of epochs to train (default: 100)",
+        help="number of batch iterations to train (default: 10k)",
+    )
+    parser.add_argument(
+        "--log-interval",
+        type=int,
+        default=200,
+        metavar="N",
+        help="number of iterations between logs (default: 200)",
     )
     parser.add_argument(
         "--seed", type=int, default=42, metavar="S", help="random seed (default: 42)"
@@ -119,8 +126,11 @@ def parse_arguments(args):
     args.color_vocab_size = None
     args.object_vocab_size = None
 
+    args.dataset_type = "meta"
+    args.task = "obverter"
+
     if args.debugging:
-        args.epochs = 10
+        args.iterations = 1000
         args.max_length = 5
 
     return args
@@ -233,71 +243,98 @@ def baseline(args):
     model.to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
-    early_stopping = EarlyStopping(mode="max")
+
+    # early stopping with patience set to approx 10 epochs
+    early_stopping = EarlyStopping(
+        mode="max", patience=int((len(train_data) * 10) / args.log_interval)
+    )
 
     if args.task == "obverter":
         valid_meta_data = get_obverter_metadata(dataset="valid")
         valid_features = None
+        # eval train data is separate train dataloader to calculate
+        # loss/acc on full set and get generalization error
+        eval_train_data = get_obverter_dataloader(
+            batch_size=args.batch_size,
+            debug=args.debugging,
+            dataset="train",
+            dataset_type=args.dataset_type,
+        )
 
     if args.task == "shapes":
         valid_meta_data = get_shapes_metadata(dataset="valid")
         valid_features = get_shapes_features(dataset="valid")
+        eval_train_data = get_shapes_dataloader(
+            batch_size=args.batch_size, k=args.k, debug=args.debugging, dataset="train"
+        )
 
     # Train
-    for epoch in range(args.epochs):
-        loss_meter, acc_meter = train_one_epoch(model, train_data, optimizer)
+    i = 0
+    while i < args.iterations:
+        for train_batch in train_data:
+            loss, acc = train_one_batch(model, train_batch, optimizer)
 
-        eval_loss_meter, eval_acc_meter, eval_entropy_meter, eval_messages, hidden_sender, hidden_receiver = evaluate(
-            model, valid_data
-        )
+            if i % args.log_interval == 0:
+                loss_meter, acc_meter, _, _, _, _, = evaluate(model, eval_train_data)
 
-        num_unique_messages = len(torch.unique(eval_messages, dim=0))
-        eval_messages = eval_messages.cpu().numpy()
+                valid_loss_meter, valid_acc_meter, valid_entropy_meter, valid_messages, hidden_sender, hidden_receiver = evaluate(
+                    model, valid_data
+                )
 
-        rsa_sr, rsa_si, rsa_ri, rsa_sm, topological_similarity, pseudo_tre = representation_similarity_analysis(
-            valid_features,
-            valid_meta_data,
-            eval_messages,
-            hidden_sender,
-            hidden_receiver,
-            tre=True,
-        )
-        l_entropy = language_entropy(eval_messages)
+                num_unique_messages = len(torch.unique(valid_messages, dim=0))
+                valid_messages = valid_messages.cpu().numpy()
 
-        if writer is not None:
-            writer.add_scalar("train_avg_loss", loss_meter.avg, epoch)
-            writer.add_scalar("train_avg_acc", acc_meter.avg, epoch)
-            writer.add_scalar("avg_loss", eval_loss_meter.avg, epoch)
-            writer.add_scalar("avg_acc", eval_acc_meter.avg, epoch)
-            writer.add_scalar("avg_entropy", eval_entropy_meter.avg, epoch)
-            writer.add_scalar("num_unique_messages", num_unique_messages, epoch)
-            writer.add_scalar("rsa_sr", rsa_sr, epoch)
-            writer.add_scalar("rsa_si", rsa_si, epoch)
-            writer.add_scalar("rsa_ri", rsa_ri, epoch)
-            writer.add_scalar("rsa_sm", rsa_sm, epoch)
-            writer.add_scalar("topological_similarity", topological_similarity, epoch)
-            writer.add_scalar("pseudo_tre", pseudo_tre, epoch)
-            writer.add_scalar("language_entropy", l_entropy, epoch)
+                rsa_sr, rsa_si, rsa_ri, rsa_sm, topological_similarity, pseudo_tre = representation_similarity_analysis(
+                    valid_features,
+                    valid_meta_data,
+                    valid_messages,
+                    hidden_sender,
+                    hidden_receiver,
+                    tre=True,
+                )
+                l_entropy = language_entropy(valid_messages)
 
-        early_stopping.step(eval_acc_meter.avg)
-        if early_stopping.num_bad_epochs == 0:
-            torch.save(model.state_dict(), "{}/best_model".format(run_folder))
+                if writer is not None:
+                    writer.add_scalar("train_avg_loss", loss_meter.avg, i)
+                    writer.add_scalar("train_avg_acc", acc_meter.avg, i)
+                    writer.add_scalar("avg_loss", valid_loss_meter.avg, i)
+                    writer.add_scalar("avg_acc", valid_acc_meter.avg, i)
+                    writer.add_scalar("avg_entropy", valid_entropy_meter.avg, i)
+                    writer.add_scalar("num_unique_messages", num_unique_messages, i)
+                    writer.add_scalar("rsa_sr", rsa_sr, i)
+                    writer.add_scalar("rsa_si", rsa_si, i)
+                    writer.add_scalar("rsa_ri", rsa_ri, i)
+                    writer.add_scalar("rsa_sm", rsa_sm, i)
+                    writer.add_scalar(
+                        "generalization_error", acc_meter.avg - valid_acc_meter.avg, i
+                    )
+                    writer.add_scalar(
+                        "topological_similarity", topological_similarity, i
+                    )
+                    writer.add_scalar("pseudo_tre", pseudo_tre, i)
+                    writer.add_scalar("language_entropy", l_entropy, i)
 
-        # Skip for now
-        print(
-            "Epoch {}, average train loss: {}, average val loss: {}, \
-                average accuracy: {}, average val accuracy: {}".format(
-                epoch,
-                loss_meter.avg,
-                eval_loss_meter.avg,
-                acc_meter.avg,
-                eval_acc_meter.avg,
-            )
-        )
+                early_stopping.step(valid_acc_meter.avg)
+                if early_stopping.num_bad_epochs == 0:
+                    torch.save(model.state_dict(), "{}/best_model".format(run_folder))
 
-        if early_stopping.is_converged:
-            print("Converged in epoch {}".format(epoch))
-            break
+                # Skip for now
+                print(
+                    "{}/{} Iterations: average train loss: {}, average val loss: {}, \
+                        average accuracy: {}, average val accuracy: {}".format(
+                        i,
+                        args.iterations,
+                        loss_meter.avg,
+                        valid_loss_meter.avg,
+                        acc_meter.avg,
+                        valid_acc_meter.avg,
+                    )
+                )
+
+                if early_stopping.is_converged:
+                    print("Converged in iterations {}".format(i))
+                    break
+            i += 1
 
     best_model = get_trainer(sender, receiver, args)
     state = torch.load(

@@ -221,7 +221,9 @@ def get_obverter_dataset(
         raise NotImplementedError()
 
 
-def get_obverter_dataloader(dataset_type="meta", debug=False, batch_size=64):
+def get_obverter_dataloader(
+    dataset_type="meta", debug=False, batch_size=64, dataset="all"
+):
 
     train_dataset, col_vocab, obj_vocab = get_obverter_dataset(
         dataset_type=dataset_type,
@@ -253,7 +255,14 @@ def get_obverter_dataloader(dataset_type="meta", debug=False, batch_size=64):
     valid_loader = DataLoader(valid_dataset, batch_size=batch_size)
     test_loader = DataLoader(test_dataset, batch_size=batch_size)
 
-    return train_loader, valid_loader, test_loader, (col_vocab, obj_vocab)
+    if dataset == "train":
+        return train_loader
+    if dataset == "valid":
+        return valid_loader
+    if dataset == "test":
+        return test_loader
+    else:
+        return train_loader, valid_loader, test_loader, (col_vocab, obj_vocab)
 
 
 if __name__ == "__main__":
