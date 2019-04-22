@@ -126,9 +126,6 @@ def parse_arguments(args):
     args.color_vocab_size = None
     args.object_vocab_size = None
 
-    args.dataset_type = "meta"
-    args.task = "obverter"
-
     if args.debugging:
         args.iterations = 1000
         args.max_length = 5
