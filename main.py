@@ -28,6 +28,13 @@ def parse_arguments(args):
         help="task to test on (default: shapes). Possible options: shapes or obverter",
     )
     parser.add_argument(
+        "--dataset-type",
+        type=str,
+        default="meta",
+        metavar="S",
+        help="type of input used by obverter pick from raw/features/meta (default meta)",
+    )
+    parser.add_argument(
         "--debugging",
         help="Enable debugging mode (default: False)",
         action="store_true",

@@ -32,27 +32,27 @@ class SenderAgent(BaseAgent):
         torch.save(sender, filename)
 
     def get_sender(self, genotype):
-        if args.task == "shapes":
+        if self.args.task == "shapes":
             sender = ShapesSender(
-                args.vocab_size,
-                args.max_length,
+                self.args.vocab_size,
+                self.args.max_length,
                 self.vocab_bound_idx,
-                embedding_size=args.embedding_size,
-                greedy=args.greedy,
-                cell_type=args.cell_type,
+                embedding_size=self.args.embedding_size,
+                greedy=self.args.greedy,
+                cell_type=self.args.cell_type,
                 genotype=genotype,
             )
-        if args.task == "obverter":
+        if self.args.task == "obverter":
             sender = ObverterSender(
-                args.vocab_size,
-                args.max_length,
+                self.args.vocab_size,
+                self.args.max_length,
                 self.vocab_bound_idx,
-                embedding_size=args.embedding_size,
-                greedy=args.greedy,
-                cell_type=args.cell_type,
+                embedding_size=self.args.embedding_size,
+                greedy=self.args.greedy,
+                cell_type=self.args.cell_type,
                 genotype=genotype,
-                dataset_type=args.dataset_type,
-                meta_vocab_size=args.meta_vocab_size,
+                dataset_type=self.args.dataset_type,
+                meta_vocab_size=self.args.meta_vocab_size,
             )
         return sender
 
@@ -96,20 +96,20 @@ class ReceiverAgent(BaseAgent):
         torch.save(receiver, filename)
 
     def get_receiver(self, genotype):
-        if args.task == "shapes":
+        if self.args.task == "shapes":
             receiver = ShapesReceiver(
                 self.args.vocab_size,
                 embedding_size=self.args.embedding_size,
                 cell_type=self.args.cell_type,
                 genotype=genotype,
             )
-        if args.task == "obverter":
+        if self.args.task == "obverter":
             receiver = ObverterReceiver(
-                args.vocab_size,
-                embedding_size=args.embedding_size,
-                dataset_type=args.dataset_type,
-                meta_vocab_size=args.meta_vocab_size,
-                cell_type=args.cell_type,
+                self.args.vocab_size,
+                embedding_size=self.args.embedding_size,
+                dataset_type=self.args.dataset_type,
+                meta_vocab_size=self.args.meta_vocab_size,
+                cell_type=self.args.cell_type,
                 genotype=genotype,
             )
         return receiver
