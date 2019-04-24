@@ -150,12 +150,14 @@ def get_sender_receiver(args):
             greedy=args.greedy,
             cell_type=cell_type,
             genotype=genotype,
+            dataset_type=args.dataset_type,
         )
         receiver = ShapesReceiver(
             args.vocab_size,
             embedding_size=args.embedding_size,
             cell_type=cell_type,
             genotype=genotype,
+            dataset_type=args.dataset_type,
         )
     elif args.task == "obverter":
         sender = ObverterSender(
