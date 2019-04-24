@@ -182,9 +182,9 @@ def get_filename_from_cee_params(params):
     """
     Generates a filename from cee params
     """
-    name = "cee_pop_size_{}_num_iters_{}_cull_interval_{}_cull_rate_{}".format(
+    name = "cee_{}_pop_size_{}_cull_interval_{}_cull_rate_{}".format(
+        params.task,
         params.population_size,
-        params.iterations,
         params.culling_interval,
         params.culling_rate,
     )
@@ -192,6 +192,8 @@ def get_filename_from_cee_params(params):
         name = "evolution_" + name
     else:
         name += "_cull_mode_{}".format(params.culling_mode)
+    if params.debugging:
+        name += "_debug"
     return name
 
 
