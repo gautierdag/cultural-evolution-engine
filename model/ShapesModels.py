@@ -8,6 +8,49 @@ from .DARTSCell import DARTSCell
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
+class ShapesMetaVisualModule(nn.Module):
+    def __init__(
+        self,
+        features_dim=512,
+        meta_dim=15,
+        hidden_size=512,
+        dataset_type="meta",
+        sender=True,
+    ):
+        super(ShapesMetaVisualModule, self).__init__()
+        self.dataset_type = dataset_type
+        self.features_dim = features_dim
+        self.hidden_size = hidden_size
+        self.process = True
+        if dataset_type == "features":
+            if features_dim == hidden_size:
+                self.process = False
+            else:
+                self.process_input = nn.Linear(
+                    *(features_dim, hidden_size)
+                    if sender
+                    else (hidden_size, features_dim)
+                )
+
+        if dataset_type == "meta":
+            self.process_input = nn.Linear(
+                *(meta_dim, hidden_size) if sender else (hidden_size, meta_dim)
+            )
+
+    def forward(self, input):
+        batch_size = input.shape[0]
+
+        # reduce features to hidden, or hidden to features
+        if self.dataset_type == "features" and self.process:
+            input = self.process_input(input)
+
+        # reduce metadata to hidden, or hidden to metadata
+        if self.dataset_type == "meta":
+            input = self.process_input(input)
+
+        return input
+
+
 class ShapesSender(nn.Module):
     def __init__(
         self,
@@ -20,6 +63,7 @@ class ShapesSender(nn.Module):
         greedy=False,
         cell_type="lstm",
         genotype=None,
+        dataset_type="meta",
     ):
         super().__init__()
         self.vocab_size = vocab_size
@@ -30,6 +74,10 @@ class ShapesSender(nn.Module):
             self.eos_id = sos_id
         else:
             self.eos_id = eos_id
+
+        self.shapes_module = ShapesMetaVisualModule(
+            hidden_size=hidden_size, dataset_type=dataset_type
+        )
 
         self.embedding_size = embedding_size
         self.hidden_size = hidden_size
@@ -123,9 +171,9 @@ class ShapesSender(nn.Module):
         """
         Performs a forward pass. If training, use Gumbel Softmax (hard) for sampling, else use
         discrete sampling.
-        Hidden state here represents the encoded image - initializes the RNN from it.
+        Hidden state here represents the encoded image/metadata - initializes the RNN from it.
         """
-
+        hidden_state = self.shapes_module(hidden_state)
         state, batch_size = self._init_state(hidden_state, type(self.rnn))
 
         # Init output
@@ -192,3 +240,77 @@ class ShapesSender(nn.Module):
             torch.mean(entropy) / self.output_len,
             torch.stack(embeds, dim=1),
         )
+
+
+class ShapesReceiver(nn.Module):
+    def __init__(
+        self,
+        vocab_size,
+        embedding_size=256,
+        hidden_size=512,
+        cell_type="lstm",
+        genotype=None,
+        dataset_type="meta",
+    ):
+        super().__init__()
+
+        self.embedding_size = embedding_size
+        self.hidden_size = hidden_size
+        self.cell_type = cell_type
+
+        self.shapes_module = ShapesMetaVisualModule(
+            hidden_size=hidden_size, dataset_type=dataset_type, sender=False
+        )
+
+        if cell_type == "lstm":
+            self.rnn = nn.LSTMCell(embedding_size, hidden_size)
+        elif cell_type == "darts":
+            self.rnn = DARTSCell(embedding_size, hidden_size, genotype)
+        else:
+            raise ValueError(
+                "ShapesReceiver case with cell_type '{}' is undefined".format(cell_type)
+            )
+
+        self.embedding = nn.Parameter(
+            torch.empty((vocab_size, embedding_size), dtype=torch.float32)
+        )
+
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        nn.init.normal_(self.embedding, 0.0, 0.1)
+        if type(self.rnn) is nn.LSTMCell:
+            nn.init.xavier_uniform_(self.rnn.weight_ih)
+            nn.init.orthogonal_(self.rnn.weight_hh)
+            nn.init.constant_(self.rnn.bias_ih, val=0)
+            nn.init.constant_(self.rnn.bias_hh, val=0)
+            nn.init.constant_(
+                self.rnn.bias_hh[self.hidden_size : 2 * self.hidden_size], val=1
+            )
+
+    def forward(self, messages):
+        batch_size = messages.shape[0]
+
+        emb = (
+            torch.matmul(messages, self.embedding)
+            if self.training
+            else self.embedding[messages]
+        )
+
+        # initialize hidden
+        h = torch.zeros([batch_size, self.hidden_size], device=device)
+        if self.cell_type == "lstm":
+            c = torch.zeros([batch_size, self.hidden_size], device=device)
+            h = (h, c)
+
+        # make sequence_length be first dim
+        seq_iterator = emb.transpose(0, 1)
+        for w in seq_iterator:
+            h = self.rnn(w, h)
+
+        if self.cell_type == "lstm":
+            h = h[0]  # keep only hidden state
+
+        out = self.shapes_module(h)
+
+        return out, emb

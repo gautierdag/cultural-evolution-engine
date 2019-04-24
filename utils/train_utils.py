@@ -163,9 +163,7 @@ def get_filename_from_baseline_params(params):
     Generates a filename from baseline params (see baseline.py)
     """
     name = params.task
-    if name == "obverter":
-        name += "_{}_".format(params.dataset_type)
-
+    name += "_{}".format(params.dataset_type)
     name += "_e_{}".format(params.embedding_size)
     name += "_max_len_{}".format(params.max_length)
     name += "_k_{}".format(params.k)
@@ -182,8 +180,9 @@ def get_filename_from_cee_params(params):
     """
     Generates a filename from cee params
     """
-    name = "cee_{}_pop_size_{}_cull_interval_{}_cull_rate_{}".format(
+    name = "cee_{}_{}_pop_size_{}_cull_interval_{}_cull_rate_{}".format(
         params.task,
+        params.dataset_type,
         params.population_size,
         params.culling_interval,
         params.culling_rate,

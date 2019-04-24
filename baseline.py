@@ -37,6 +37,20 @@ def parse_arguments(args):
         action="store_true",
     )
     parser.add_argument(
+        "--task",
+        type=str,
+        default="shapes",
+        metavar="S",
+        help="task to test on (default: shapes). Possible options: shapes or obverter",
+    )
+    parser.add_argument(
+        "--dataset-type",
+        type=str,
+        default="meta",
+        metavar="S",
+        help="type of input used by dataset pick from raw/features/meta (default meta)",
+    )
+    parser.add_argument(
         "--greedy",
         help="Use argmax at prediction time instead of sampling (default: False)",
         action="store_true",
@@ -105,20 +119,6 @@ def parse_arguments(args):
         default=8,
         metavar="N",
         help="Size of darts cell to use with random-darts (default: 8)",
-    )
-    parser.add_argument(
-        "--task",
-        type=str,
-        default="shapes",
-        metavar="S",
-        help="task to test on (default: shapes). Possible options: shapes or obverter",
-    )
-    parser.add_argument(
-        "--dataset-type",
-        type=str,
-        default="meta",
-        metavar="S",
-        help="type of input used by dataset pick from raw/features/meta (default meta)",
     )
 
     args = parser.parse_args(args)
@@ -199,13 +199,36 @@ def baseline(args):
     # Load data
     if args.task == "shapes":
         train_data, valid_data, test_data = get_shapes_dataloader(
-            batch_size=args.batch_size, k=args.k, debug=args.debugging
+            batch_size=args.batch_size,
+            k=args.k,
+            debug=args.debugging,
+            dataset_type=args.dataset_type,
         )
+        valid_meta_data = get_shapes_metadata(dataset="valid")
+        valid_features = get_shapes_features(dataset="valid")
+        eval_train_data = get_shapes_dataloader(
+            batch_size=args.batch_size,
+            k=args.k,
+            debug=args.debugging,
+            dataset="train",
+            dataset_type=args.dataset_type,
+        )
+
     elif args.task == "obverter":
         train_data, valid_data, test_data, meta_vocab = get_obverter_dataloader(
             dataset_type=args.dataset_type,
             debug=args.debugging,
             batch_size=args.batch_size,
+        )
+        valid_meta_data = get_obverter_metadata(dataset="valid")
+        valid_features = None
+        # eval train data is separate train dataloader to calculate
+        # loss/acc on full set and get generalization error
+        eval_train_data = get_obverter_dataloader(
+            batch_size=args.batch_size,
+            debug=args.debugging,
+            dataset="train",
+            dataset_type=args.dataset_type,
         )
         if args.dataset_type == "meta":
             args.meta_vocab_size = len(meta_vocab.itos)
@@ -241,25 +264,6 @@ def baseline(args):
     early_stopping = EarlyStopping(
         mode="max", patience=int((len(train_data) * 10) / args.log_interval)
     )
-
-    if args.task == "obverter":
-        valid_meta_data = get_obverter_metadata(dataset="valid")
-        valid_features = None
-        # eval train data is separate train dataloader to calculate
-        # loss/acc on full set and get generalization error
-        eval_train_data = get_obverter_dataloader(
-            batch_size=args.batch_size,
-            debug=args.debugging,
-            dataset="train",
-            dataset_type=args.dataset_type,
-        )
-
-    if args.task == "shapes":
-        valid_meta_data = get_shapes_metadata(dataset="valid")
-        valid_features = get_shapes_features(dataset="valid")
-        eval_train_data = get_shapes_dataloader(
-            batch_size=args.batch_size, k=args.k, debug=args.debugging, dataset="train"
-        )
 
     # Train
     i = 0

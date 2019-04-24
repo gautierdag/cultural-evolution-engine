@@ -5,14 +5,17 @@ from torch.utils.data.sampler import Sampler
 
 
 class ShapesDataset:
-    def __init__(self, features, mean=None, std=None):
-        if mean is None:
-            mean = np.mean(features, axis=0)
-            std = np.std(features, axis=0)
-            std[np.nonzero(std == 0.0)] = 1.0  # nan is because of dividing by zero
-        self.mean = mean
-        self.std = std
-        self.features = (features - self.mean) / (2 * self.std)
+    def __init__(self, features, mean=None, std=None, metadata=False):
+        if metadata:
+            self.features = features
+        else:
+            if mean is None:
+                mean = np.mean(features, axis=0)
+                std = np.std(features, axis=0)
+                std[np.nonzero(std == 0.0)] = 1.0  # nan is because of dividing by zero
+            self.mean = mean
+            self.std = std
+            self.features = (features - self.mean) / (2 * self.std)
 
     def __getitem__(self, indices):
         target_idx = indices[0]
