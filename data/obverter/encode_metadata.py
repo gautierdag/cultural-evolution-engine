@@ -6,10 +6,6 @@ from collections import defaultdict
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 
-def unk_index():
-    return 0
-
-
 class Vocab(object):
     """
     Vocab object to create vocabulary and load if exists
@@ -25,12 +21,11 @@ class Vocab(object):
             pickle.dump({"stoi": self.stoi, "itos": self.itos}, f)
 
     def build_vocab(self, vocab_set):
-        self.stoi = defaultdict(unk_index)
-        self.stoi["<UNK>"] = 0
-        self.itos = ["<UNK>"]
+        self.stoi = {}
+        self.itos = []
         for i, token in enumerate(vocab_set):
             self.itos.append(token)
-            self.stoi[token] = i + 1
+            self.stoi[token] = i
 
         self.save_vocab()
 
@@ -46,10 +41,9 @@ def get_all_possible_colors_objects(metadata):
     return list(colors), list(objects)
 
 
-def encode_metadata(metadata, meta_vocab=None):
-    if meta_vocab is None:
-        colors, objects = get_all_possible_colors_objects(metadata)
-        meta_vocab = Vocab(colors + objects, name="meta")
+def encode_metadata(metadata):
+    colors, objects = get_all_possible_colors_objects(metadata)
+    meta_vocab = Vocab(colors + objects, name="meta")
 
     encoded_metadata = []
     for ((obj1, col1), (obj2, col2)) in metadata:
@@ -59,7 +53,7 @@ def encode_metadata(metadata, meta_vocab=None):
                 [meta_vocab.stoi[obj2], meta_vocab.stoi[col2]],
             ]
         )
-    return np.array(encoded_metadata), meta_vocab
+    return np.array(encoded_metadata)
 
 
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ def one_hot(a):
     return out
 
 
-def get_shapes_metadata(dataset="test", one_hot_encode=True):
+def get_shapes_metadata(dataset="test"):
     """
     Args:
         dataset (str, opt) from {"train", "valid", "test"}
@@ -37,21 +37,10 @@ def get_shapes_metadata(dataset="test", one_hot_encode=True):
 
     # return one hot encoding
     # note this will have 15 dimensions and not 14 as expected
-    if one_hot_encode:
-        one_hot_derivations = one_hot(compressed_test_images).reshape(
-            compressed_test_images.shape[0], -1
-        )
-        return one_hot_derivations
-
-    # return encoding based on vocabulary
-    else:
-        # need to hard code because we only have access to integers..
-        true_label_dist = [3, 3, 2, 3, 3]
-        for i in range(1, 5):
-            compressed_test_images[:, i] += true_label_dist[i - 1]
-            true_label_dist[i] += true_label_dist[i - 1]
-
-        return compressed_test_images
+    one_hot_derivations = one_hot(compressed_test_images).reshape(
+        compressed_test_images.shape[0], -1
+    )
+    return one_hot_derivations
 
 
 if __name__ == "__main__":

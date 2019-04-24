@@ -123,8 +123,6 @@ def parse_arguments(args):
 
     args = parser.parse_args(args)
 
-    args.meta_vocab_size = None
-
     if args.debugging:
         args.iterations = 1000
         args.max_length = 5
@@ -167,13 +165,11 @@ def get_sender_receiver(args):
             embedding_size=args.embedding_size,
             greedy=args.greedy,
             dataset_type=args.dataset_type,
-            meta_vocab_size=args.meta_vocab_size,
         )
         receiver = ObverterReceiver(
             args.vocab_size,
             embedding_size=args.embedding_size,
             dataset_type=args.dataset_type,
-            meta_vocab_size=args.meta_vocab_size,
         )
     else:
         raise ValueError("Unsupported task type : {}".format(args.task))
@@ -215,12 +211,14 @@ def baseline(args):
         )
 
     elif args.task == "obverter":
-        train_data, valid_data, test_data, meta_vocab = get_obverter_dataloader(
+        train_data, valid_data, test_data = get_obverter_dataloader(
             dataset_type=args.dataset_type,
             debug=args.debugging,
             batch_size=args.batch_size,
         )
-        valid_meta_data = get_obverter_metadata(dataset="valid")
+        valid_meta_data = get_obverter_metadata(
+            dataset="valid", first_picture_only=True
+        )
         valid_features = None
         # eval train data is separate train dataloader to calculate
         # loss/acc on full set and get generalization error
@@ -230,8 +228,7 @@ def baseline(args):
             dataset="train",
             dataset_type=args.dataset_type,
         )
-        if args.dataset_type == "meta":
-            args.meta_vocab_size = len(meta_vocab.itos)
+
     else:
         raise ValueError("Unsupported task type : {}".formate(args.task))
 

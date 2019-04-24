@@ -52,7 +52,6 @@ class SenderAgent(BaseAgent):
                 cell_type=self.args.cell_type,
                 genotype=genotype,
                 dataset_type=self.args.dataset_type,
-                meta_vocab_size=self.args.meta_vocab_size,
             )
         return sender
 
@@ -108,7 +107,6 @@ class ReceiverAgent(BaseAgent):
                 self.args.vocab_size,
                 embedding_size=self.args.embedding_size,
                 dataset_type=self.args.dataset_type,
-                meta_vocab_size=self.args.meta_vocab_size,
                 cell_type=self.args.cell_type,
                 genotype=genotype,
             )

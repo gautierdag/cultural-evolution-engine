@@ -14,7 +14,7 @@ def one_hot(a):
     return out
 
 
-def get_obverter_metadata(dataset="valid"):
+def get_obverter_metadata(dataset="valid", first_picture_only=False):
     """
     Args:
         dataset (str, opt) from {"train", "valid", "test"}
@@ -23,12 +23,18 @@ def get_obverter_metadata(dataset="valid"):
     meta = np.load("{}/{}_metadata.npy".format(dir_path, dataset))
 
     # compressed_test_images = np.zeros((len(test_meta), 2))
-    compressed_test_images, _ = encode_metadata(meta)
-    compressed_test_images = compressed_test_images[:, 0, :]  # keep only first image
+    compressed_test_images = encode_metadata(meta)
 
-    one_hot_derivations = one_hot(compressed_test_images).reshape(
-        compressed_test_images.shape[0], -1
-    )
+    if first_picture_only:
+        compressed_test_images = compressed_test_images[
+            :, 0, :
+        ]  # keep only first image
+        one_hot_derivations = one_hot(compressed_test_images).sum(axis=1)
+    else:
+        one_hot_derivations = one_hot(compressed_test_images).sum(axis=2)
 
     return one_hot_derivations
 
+
+if __name__ == "__main__":
+    get_obverter_metadata()

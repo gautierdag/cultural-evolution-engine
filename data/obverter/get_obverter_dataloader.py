@@ -11,7 +11,7 @@ from PIL import Image
 from tqdm import tqdm
 
 from ..feature_extractor import get_features
-from .encode_metadata import encode_metadata
+from .get_obverter_metadata import get_obverter_metadata
 from .ObverterDataset import ObverterDataset
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -151,14 +151,13 @@ def generate_dataset(images_cache, dataset_length=1000):
 
 
 def get_obverter_dataset(
-    dataset_type="features", dataset_length=1000, dataset_name="train", meta_vocab=None
+    dataset_type="features", dataset_length=1000, dataset_name="train"
 ):
     """
     Args: 
         dataset_type: type of data to be returned by dataset object
                       pick from {"features", "raw", "meta"}
         dataset_length: number of examples in dataset
-        meta_vocab: color/object vocab object (used for metadata)
     """
     images_dict = load_images_dict()
 
@@ -187,18 +186,15 @@ def get_obverter_dataset(
             features = get_features(vgg16, images_dict["images"])
             np.save(features_path, features)
         assert len(features) == len(images_dict["images"])
-        return ObverterDataset(dataset, features), meta_vocab
+        return ObverterDataset(dataset, features)
 
     # return dataset with raw images
     elif dataset_type == "raw":
-        return ObverterDataset(dataset, images_dict["images"]), meta_vocab
+        return ObverterDataset(dataset, images_dict["images"])
 
     elif dataset_type == "meta":
-        if meta_vocab is None:
-            encoded_meta, meta_vocab = encode_metadata(metadata)
-        else:
-            encoded_meta, _, = encode_metadata(metadata, meta_vocab=meta_vocab)
-        return (ObverterDataset(dataset, encoded_meta, metadata=True), meta_vocab)
+        encoded_meta = get_obverter_metadata(dataset=dataset_name)
+        return ObverterDataset(dataset, encoded_meta.astype(np.float32), metadata=True)
 
     else:
         raise NotImplementedError()
@@ -208,23 +204,19 @@ def get_obverter_dataloader(
     dataset_type="meta", debug=False, batch_size=64, dataset="all"
 ):
 
-    train_dataset, meta_vocab = get_obverter_dataset(
+    train_dataset = get_obverter_dataset(
         dataset_type=dataset_type,
         dataset_length=TRAIN_DATASET_SIZE,
         dataset_name="train",
     )
 
-    valid_dataset, _ = get_obverter_dataset(
+    valid_dataset = get_obverter_dataset(
         dataset_type=dataset_type,
         dataset_length=VALID_DATASET_SIZE,
         dataset_name="valid",
-        meta_vocab=meta_vocab,  # use vocab from train
     )
-    test_dataset, _, = get_obverter_dataset(
-        dataset_type=dataset_type,
-        dataset_length=TEST_DATASET_SIZE,
-        dataset_name="test",
-        meta_vocab=meta_vocab,  # use vocab from train
+    test_dataset = get_obverter_dataset(
+        dataset_type=dataset_type, dataset_length=TEST_DATASET_SIZE, dataset_name="test"
     )
 
     if debug:  # reduced dataset sizes if debugging
@@ -243,7 +235,7 @@ def get_obverter_dataloader(
     if dataset == "test":
         return test_loader
     else:
-        return train_loader, valid_loader, test_loader, meta_vocab
+        return train_loader, valid_loader, test_loader
 
 
 if __name__ == "__main__":

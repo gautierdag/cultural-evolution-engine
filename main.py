@@ -163,8 +163,6 @@ def parse_arguments(args):
 
     args = parser.parse_args(args)
 
-    args.meta_vocab_size = None
-
     if args.debugging:
         args.iterations = 10000
         args.culling_interval = 2000
@@ -204,15 +202,15 @@ def main(args):
 
     # Load Data
     if args.task == "obverter":
-        train_data, valid_data, test_data, meta_vocab = get_obverter_dataloader(
+        train_data, valid_data, test_data = get_obverter_dataloader(
             dataset_type=args.dataset_type,
             debug=args.debugging,
             batch_size=args.batch_size,
         )
-        if args.dataset_type == "meta":
-            args.meta_vocab_size = len(meta_vocab.itos)
 
-        valid_meta_data = get_obverter_metadata(dataset="valid")
+        valid_meta_data = get_obverter_metadata(
+            dataset="valid", first_picture_only=True
+        )
         valid_features = None
         # eval train data is separate train dataloader to calculate
         # loss/acc on full set and get generalization error
