@@ -10,14 +10,14 @@ from cee.metrics import (
     message_distance,
 )
 
-from ShapesAgents import ShapesSenderAgent, ShapesReceiverAgent
-from model import ShapesTrainer, generate_genotype, mutate_genotype
+from EvolutionAgents import SenderAgent, ReceiverAgent
+from model import ShapesTrainer, ObverterTrainer, generate_genotype, mutate_genotype
 from utils import create_folder_if_not_exists, train_one_batch, evaluate
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-class ShapesCEE(BaseCEE):
+class EvolutionCEE(BaseCEE):
     def __init__(self, params, run_folder="runs"):
         self.run_folder = run_folder
         super().__init__(params)
@@ -49,12 +49,12 @@ class ShapesCEE(BaseCEE):
                 receiver_genotype = generate_genotype(num_nodes=params.init_nodes)
 
             self.senders.append(
-                ShapesSenderAgent(
+                SenderAgent(
                     self.run_folder, params, genotype=sender_genotype, agent_id=i
                 )
             )
             self.receivers.append(
-                ShapesReceiverAgent(
+                ReceiverAgent(
                     self.run_folder, params, genotype=receiver_genotype, agent_id=i
                 )
             )
@@ -66,7 +66,7 @@ class ShapesCEE(BaseCEE):
         sender_model = sender.get_model()
         receiver_model = receiver.get_model()
 
-        model = ShapesTrainer(sender_model, receiver_model)
+        model = self.get_trainer(sender_model, receiver_model)
         model.to(device)
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
@@ -166,7 +166,8 @@ class ShapesCEE(BaseCEE):
         """
         sender_model = sender.get_model()
         receiver_model = receiver.get_model()
-        model = ShapesTrainer(sender_model, receiver_model)
+
+        model = get_trainer(sender_model, receiver_model)
         model.to(device)
         test_loss_meter, test_acc_meter, entropy_meter, test_messages, hidden_sender, hidden_receiver = evaluate(
             model, test_data
@@ -332,3 +333,10 @@ class ShapesCEE(BaseCEE):
                 dataformats="HWC",
             )
 
+    def get_trainer(sender, receiver):
+        if self.params.task == "shapes":
+            return ShapesTrainer(sender, receiver)
+        elif self.params.task == "obverter":
+            return ObverterTrainer(sender, receiver)
+        else:
+            raise ValueError("Incorrect task parameter")

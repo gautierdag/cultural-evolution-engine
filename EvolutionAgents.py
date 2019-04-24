@@ -12,7 +12,7 @@ import torch
 import pickle
 
 
-class ShapesSenderAgent(BaseAgent):
+class SenderAgent(BaseAgent):
     def __init__(self, run_folder, args, genotype=None, agent_id=0):
         if args.cell_type == "darts" and genotype is None:
             raise ValueError("Expected genotype in Sender with option 'darts'")
@@ -26,11 +26,17 @@ class ShapesSenderAgent(BaseAgent):
         self.convergence = 100
 
         vocab = AgentVocab(args.vocab_size)
+        self.vocab_bound_idx = vocab.bound_idx
+
+        sender = self.get_sender(genotype)
+        torch.save(sender, filename)
+
+    def get_sender(self, genotype):
         if args.task == "shapes":
             sender = ShapesSender(
                 args.vocab_size,
                 args.max_length,
-                vocab.bound_idx,
+                self.vocab_bound_idx,
                 embedding_size=args.embedding_size,
                 greedy=args.greedy,
                 cell_type=args.cell_type,
@@ -40,14 +46,15 @@ class ShapesSenderAgent(BaseAgent):
             sender = ObverterSender(
                 args.vocab_size,
                 args.max_length,
-                vocab.bound_idx,
+                self.vocab_bound_idx,
                 embedding_size=args.embedding_size,
                 greedy=args.greedy,
+                cell_type=args.cell_type,
+                genotype=genotype,
                 dataset_type=args.dataset_type,
                 meta_vocab_size=args.meta_vocab_size,
             )
-
-        torch.save(sender, filename)
+        return sender
 
     def mutate(self, new_genotype):
         """
@@ -57,16 +64,7 @@ class ShapesSenderAgent(BaseAgent):
 
         vocab = AgentVocab(self.args.vocab_size)
 
-        model = ShapesSender(
-            self.args.vocab_size,
-            self.args.max_length,
-            vocab.bound_idx,
-            embedding_size=self.args.embedding_size,
-            greedy=self.args.greedy,
-            cell_type=self.args.cell_type,
-            genotype=new_genotype,
-        )
-
+        model = get_sender()
         torch.save(model, self.filename)
 
         self.initialize_loss_acc()
@@ -83,7 +81,7 @@ class ShapesSenderAgent(BaseAgent):
         return img
 
 
-class ShapesReceiverAgent(BaseAgent):
+class ReceiverAgent(BaseAgent):
     def __init__(self, run_folder, args, genotype=None, agent_id=0):
         if args.cell_type == "darts" and genotype is None:
             raise ValueError("Expected genotype in Receiver with option 'darts'")
@@ -94,13 +92,27 @@ class ShapesReceiverAgent(BaseAgent):
         super().__init__(filename, args)
         self.genotype = genotype
 
-        receiver = ShapesReceiver(
-            args.vocab_size,
-            embedding_size=args.embedding_size,
-            cell_type=args.cell_type,
-            genotype=genotype,
-        )
+        receiver = self.get_receiver(genotype)
         torch.save(receiver, filename)
+
+    def get_receiver(self, genotype):
+        if args.task == "shapes":
+            receiver = ShapesReceiver(
+                self.args.vocab_size,
+                embedding_size=self.args.embedding_size,
+                cell_type=self.args.cell_type,
+                genotype=genotype,
+            )
+        if args.task == "obverter":
+            receiver = ObverterReceiver(
+                args.vocab_size,
+                embedding_size=args.embedding_size,
+                dataset_type=args.dataset_type,
+                meta_vocab_size=args.meta_vocab_size,
+                cell_type=args.cell_type,
+                genotype=genotype,
+            )
+        return receiver
 
     def mutate(self, new_genotype):
         """
@@ -108,16 +120,8 @@ class ShapesReceiverAgent(BaseAgent):
         """
         self.genotype = new_genotype
 
-        vocab = AgentVocab(self.args.vocab_size)
-
-        model = ShapesReceiver(
-            self.args.vocab_size,
-            embedding_size=self.args.embedding_size,
-            cell_type=self.args.cell_type,
-            genotype=new_genotype,
-        )
-
-        torch.save(model, self.filename)
+        receiver = self.get_receiver(new_genotype)
+        torch.save(receiver, self.filename)
 
         self.initialize_loss_acc()
         self.age = 0
