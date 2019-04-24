@@ -10,7 +10,7 @@ from tensorboardX import SummaryWriter
 from utils import *
 from data.shapes import get_shapes_dataloader, get_shapes_metadata, get_shapes_features
 
-from ShapesCEE import ShapesCEE
+from EvolutionCEE import EvolutionCEE
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -195,22 +195,22 @@ def main(args):
     # Generate population and save intial models
     if args.resume:
         print("Resuming from checkpoint")
-        shapes_cee = pickle.load(open(experiment_folder + "/cee.p", "rb"))
-        i = shapes_cee.iteration
+        evolution_cee = pickle.load(open(experiment_folder + "/cee.p", "rb"))
+        i = evolution_cee.iteration
     else:
-        shapes_cee = ShapesCEE(args, run_folder=experiment_folder)
+        evolution_cee = EvolutionCEE(args, run_folder=experiment_folder)
         i = 0
 
     while i < args.iterations:
         for batch in train_data:
-            shapes_cee.train_population(batch)
-            shapes_cee.save()
+            evolution_cee.train_population(batch)
+            evolution_cee.save()
             if i % args.log_interval == 0:
-                metrics = shapes_cee.evaluate_population(
+                metrics = evolution_cee.evaluate_population(
                     valid_data, valid_meta_data, valid_features, advanced=True
                 )
                 # evaluate on full train set (using separate dataloader)
-                train_metrics = shapes_cee.evaluate_population(
+                train_metrics = evolution_cee.evaluate_population(
                     eval_train_data, [], [], advanced=False
                 )
 
@@ -224,22 +224,22 @@ def main(args):
                     "generalization_error", train_metrics["acc"] - metrics["acc"], i
                 )
 
-                metrics["avg_age"] = shapes_cee.get_avg_age()
+                metrics["avg_age"] = evolution_cee.get_avg_age()
                 writer.add_scalar("avg_age", metrics["avg_age"], i)
 
                 # convergence calculations
-                metrics["avg_convergence"] = shapes_cee.get_avg_convergence_at_step(
+                metrics["avg_convergence"] = evolution_cee.get_avg_convergence_at_step(
                     dynamic=True
                 )
                 writer.add_scalar("avg_convergence", metrics["avg_convergence"], i)
 
                 metrics[
                     "avg_convergence_at_10"
-                ] = shapes_cee.get_avg_convergence_at_step(step=10)
+                ] = evolution_cee.get_avg_convergence_at_step(step=10)
 
                 metrics[
                     "avg_convergence_at_100"
-                ] = shapes_cee.get_avg_convergence_at_step(step=100)
+                ] = evolution_cee.get_avg_convergence_at_step(step=100)
 
                 writer.add_scalar(
                     "avg_convergence_at_10", metrics["avg_convergence_at_10"], i
@@ -294,20 +294,20 @@ def main(args):
 
             if i % args.culling_interval == 0 and i > 0:
                 if args.evolution:
-                    shapes_cee.save_genotypes_to_writer(writer)
-                    shapes_cee.mutate_population(culling_rate=args.culling_rate)
-                    shapes_cee.save_genotypes_to_writer(writer, receiver=True)
-                    shapes_cee.mutate_population(
+                    evolution_cee.save_genotypes_to_writer(writer)
+                    evolution_cee.mutate_population(culling_rate=args.culling_rate)
+                    evolution_cee.save_genotypes_to_writer(writer, receiver=True)
+                    evolution_cee.mutate_population(
                         culling_rate=args.culling_rate, receiver=True
                     )
 
                 else:
                     # Cull senders
-                    shapes_cee.cull_population(
+                    evolution_cee.cull_population(
                         culling_rate=args.culling_rate, mode=args.culling_mode
                     )
                     # Cull receivers
-                    shapes_cee.cull_population(
+                    evolution_cee.cull_population(
                         receiver=True,
                         culling_rate=args.culling_rate,
                         mode=args.culling_mode,
