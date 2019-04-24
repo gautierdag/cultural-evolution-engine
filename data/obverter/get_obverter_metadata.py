@@ -23,7 +23,7 @@ def get_obverter_metadata(dataset="valid"):
     meta = np.load("{}/{}_metadata.npy".format(dir_path, dataset))
 
     # compressed_test_images = np.zeros((len(test_meta), 2))
-    compressed_test_images, _, _ = encode_metadata(meta)
+    compressed_test_images, _ = encode_metadata(meta)
     compressed_test_images = compressed_test_images[:, 0, :]  # keep only first image
 
     one_hot_derivations = one_hot(compressed_test_images).reshape(

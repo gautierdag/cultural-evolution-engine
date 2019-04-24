@@ -14,8 +14,7 @@ class ObverterMetaVisualModule(nn.Module):
         hidden_size=512,
         dataset_type="meta",
         in_features=8192,
-        object_vocab_size=None,
-        color_vocab_size=None,
+        meta_vocab_size=None,
     ):
         super(ObverterMetaVisualModule, self).__init__()
         self.dataset_type = dataset_type
@@ -46,15 +45,7 @@ class ObverterMetaVisualModule(nn.Module):
             self.process_input = nn.Linear(in_features, hidden_size)
 
         if dataset_type == "meta":
-            self.process_input_color = nn.Embedding(
-                color_vocab_size, int(hidden_size / 2)
-            )
-            self.process_input_object = nn.Embedding(
-                object_vocab_size, int(hidden_size / 2)
-            )
-
-        if dataset_type == "combined":
-            self.process_input = nn.Embedding(object_vocab_size, int(hidden_size / 2))
+            self.process_input = nn.Embedding(meta_vocab_size, int(hidden_size / 2))
 
     def forward(self, input):
         batch_size = input.shape[0]
@@ -65,14 +56,8 @@ class ObverterMetaVisualModule(nn.Module):
         # process precomputed features by reducing them to hidden size
         if self.dataset_type == "features":
             embedding = self.process_input(input)
-        # process metadata input with separate vocab for color/object
-        if self.dataset_type == "meta":
-            object_embedding = self.process_input_object(input[:, 0])
-            color_embedding = self.process_input_color(input[:, 1])
-            embedding = torch.cat((object_embedding, color_embedding), 1)
-
         # process metadata input with same vocab for color/object
-        if self.dataset_type == "combined":
+        if self.dataset_type == "meta":
             embedding = self.process_input(input).view(batch_size, -1)
 
         assert embedding.shape[1] == self.hidden_size
@@ -92,8 +77,7 @@ class ObverterSender(nn.Module):
         cell_type="lstm",
         genotype=None,
         dataset_type="meta",
-        object_vocab_size=None,
-        color_vocab_size=None,
+        meta_vocab_size=None,
     ):
         super().__init__()
         self.vocab_size = vocab_size
@@ -112,8 +96,7 @@ class ObverterSender(nn.Module):
         self.obverter_module = ObverterMetaVisualModule(
             hidden_size=hidden_size,
             dataset_type=dataset_type,
-            object_vocab_size=object_vocab_size,
-            color_vocab_size=color_vocab_size,
+            meta_vocab_size=meta_vocab_size,
         )
 
         # rnn settings

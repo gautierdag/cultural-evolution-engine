@@ -118,13 +118,12 @@ def parse_arguments(args):
         type=str,
         default="meta",
         metavar="S",
-        help="type of input used by dataset pick from raw/features/meta/combined (default meta)",
+        help="type of input used by dataset pick from raw/features/meta (default meta)",
     )
 
     args = parser.parse_args(args)
 
-    args.color_vocab_size = None
-    args.object_vocab_size = None
+    args.meta_vocab_size = None
 
     if args.debugging:
         args.iterations = 1000
@@ -168,15 +167,13 @@ def get_sender_receiver(args):
             embedding_size=args.embedding_size,
             greedy=args.greedy,
             dataset_type=args.dataset_type,
-            object_vocab_size=args.object_vocab_size,
-            color_vocab_size=args.color_vocab_size,
+            meta_vocab_size=args.meta_vocab_size,
         )
         receiver = ObverterReceiver(
             args.vocab_size,
             embedding_size=args.embedding_size,
             dataset_type=args.dataset_type,
-            object_vocab_size=args.object_vocab_size,
-            color_vocab_size=args.color_vocab_size,
+            meta_vocab_size=args.meta_vocab_size,
         )
     else:
         raise ValueError("Unsupported task type : {}".format(args.task))
@@ -205,14 +202,13 @@ def baseline(args):
             batch_size=args.batch_size, k=args.k, debug=args.debugging
         )
     elif args.task == "obverter":
-        train_data, valid_data, test_data, meta_vocabs = get_obverter_dataloader(
+        train_data, valid_data, test_data, meta_vocab = get_obverter_dataloader(
             dataset_type=args.dataset_type,
             debug=args.debugging,
             batch_size=args.batch_size,
         )
-        if args.dataset_type == "meta" or args.dataset_type == "combined":
-            args.color_vocab_size = len(meta_vocabs[0].itos)
-            args.object_vocab_size = len(meta_vocabs[1].itos)
+        if args.dataset_type == "meta":
+            args.meta_vocab_size = len(meta_vocab.itos)
     else:
         raise ValueError("Unsupported task type : {}".formate(args.task))
 

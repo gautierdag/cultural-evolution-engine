@@ -1,5 +1,11 @@
 from cee import BaseAgent
-from model import ShapesSender, ShapesReceiver, get_genotype_image
+from model import (
+    ShapesSender,
+    ShapesReceiver,
+    ObverterSender,
+    ObverterReceiver,
+    get_genotype_image,
+)
 from data import AgentVocab
 
 import torch
@@ -20,16 +26,27 @@ class ShapesSenderAgent(BaseAgent):
         self.convergence = 100
 
         vocab = AgentVocab(args.vocab_size)
+        if args.task == "shapes":
+            sender = ShapesSender(
+                args.vocab_size,
+                args.max_length,
+                vocab.bound_idx,
+                embedding_size=args.embedding_size,
+                greedy=args.greedy,
+                cell_type=args.cell_type,
+                genotype=genotype,
+            )
+        if args.task == "obverter":
+            sender = ObverterSender(
+                args.vocab_size,
+                args.max_length,
+                vocab.bound_idx,
+                embedding_size=args.embedding_size,
+                greedy=args.greedy,
+                dataset_type=args.dataset_type,
+                meta_vocab_size=args.meta_vocab_size,
+            )
 
-        sender = ShapesSender(
-            args.vocab_size,
-            args.max_length,
-            vocab.bound_idx,
-            embedding_size=args.embedding_size,
-            greedy=args.greedy,
-            cell_type=args.cell_type,
-            genotype=genotype,
-        )
         torch.save(sender, filename)
 
     def mutate(self, new_genotype):

@@ -152,20 +152,14 @@ def generate_dataset(images_cache, dataset_length=1000):
 
 
 def get_obverter_dataset(
-    dataset_type="features",
-    dataset_length=1000,
-    dataset_name="train",
-    col_vocab=None,
-    obj_vocab=None,
+    dataset_type="features", dataset_length=1000, dataset_name="train", meta_vocab=None
 ):
     """
     Args: 
         dataset_type: type of data to be returned by dataset object
-                      pick from {"features", "raw", "meta", "combined"}
+                      pick from {"features", "raw", "meta"}
         dataset_length: number of examples in dataset
-        col_vocab: color vocab object (used for metadata)
-        obj_vocab: object vocab object (used for metadata)
-        Note when combined the col and obj vocabs are the same
+        meta_vocab: color/object vocab object (used for metadata)
     """
     images_dict = load_images_dict()
 
@@ -195,27 +189,18 @@ def get_obverter_dataset(
             features = get_features(vgg16, images_dict["images"])
             np.save(features_path, features)
         assert len(features) == len(images_dict["images"])
-        return ObverterDataset(dataset, features), col_vocab, obj_vocab
+        return ObverterDataset(dataset, features), meta_vocab
 
     # return dataset with raw images
     elif dataset_type == "raw":
-        return ObverterDataset(dataset, images_dict["images"]), col_vocab, obj_vocab
+        return ObverterDataset(dataset, images_dict["images"]), meta_vocab
 
-    elif dataset_type == "meta" or dataset_type == "combined":
-        combined = "combined" in dataset_type
-        if col_vocab is None and obj_vocab is None:
-            encoded_meta, col_vocab, obj_vocab = encode_metadata(
-                metadata, combined=combined
-            )
+    elif dataset_type == "meta":
+        if meta_vocab is None:
+            encoded_meta, meta_vocab = encode_metadata(metadata)
         else:
-            encoded_meta, _, _ = encode_metadata(
-                metadata, colors_vocab=col_vocab, object_vocab=obj_vocab
-            )
-        return (
-            ObverterDataset(dataset, encoded_meta, metadata=True),
-            col_vocab,
-            obj_vocab,
-        )
+            encoded_meta, _, = encode_metadata(metadata, meta_vocab=meta_vocab)
+        return (ObverterDataset(dataset, encoded_meta, metadata=True), meta_vocab)
 
     else:
         raise NotImplementedError()
@@ -225,25 +210,23 @@ def get_obverter_dataloader(
     dataset_type="meta", debug=False, batch_size=64, dataset="all"
 ):
 
-    train_dataset, col_vocab, obj_vocab = get_obverter_dataset(
+    train_dataset, meta_vocab = get_obverter_dataset(
         dataset_type=dataset_type,
         dataset_length=TRAIN_DATASET_SIZE,
         dataset_name="train",
     )
 
-    valid_dataset, _, _ = get_obverter_dataset(
+    valid_dataset, _ = get_obverter_dataset(
         dataset_type=dataset_type,
         dataset_length=VALID_DATASET_SIZE,
         dataset_name="valid",
-        col_vocab=col_vocab,  # use vocab from train
-        obj_vocab=obj_vocab,  # use vocab from train
+        meta_vocab=meta_vocab,  # use vocab from train
     )
-    test_dataset, _, _ = get_obverter_dataset(
+    test_dataset, _ = get_obverter_dataset(
         dataset_type=dataset_type,
         dataset_length=TEST_DATASET_SIZE,
         dataset_name="test",
-        col_vocab=col_vocab,  # use vocab from train
-        obj_vocab=obj_vocab,  # use vocab from train
+        meta_vocab=meta_vocab,  # use vocab from train
     )
 
     if debug:  # reduced dataset sizes if debugging
@@ -262,7 +245,7 @@ def get_obverter_dataloader(
     if dataset == "test":
         return test_loader
     else:
-        return train_loader, valid_loader, test_loader, (col_vocab, obj_vocab)
+        return train_loader, valid_loader, test_loader, meta_vocab
 
 
 if __name__ == "__main__":

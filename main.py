@@ -21,6 +21,13 @@ def parse_arguments(args):
         description="Training Sender Receiver Agent on Shapes"
     )
     parser.add_argument(
+        "--task",
+        type=str,
+        default="shapes",
+        metavar="S",
+        help="task to test on (default: shapes). Possible options: shapes or obverter",
+    )
+    parser.add_argument(
         "--debugging",
         help="Enable debugging mode (default: False)",
         action="store_true",

@@ -46,25 +46,20 @@ def get_all_possible_colors_objects(metadata):
     return list(colors), list(objects)
 
 
-def encode_metadata(metadata, colors_vocab=None, object_vocab=None, combined=False):
-    if colors_vocab is None and object_vocab is None:
+def encode_metadata(metadata, meta_vocab=None):
+    if meta_vocab is None:
         colors, objects = get_all_possible_colors_objects(metadata)
-        if combined:
-            colors_vocab = Vocab(colors + objects, name="combined")
-            object_vocab = colors_vocab
-        else:
-            colors_vocab = Vocab(colors, name="color")
-            object_vocab = Vocab(objects, name="object")
+        meta_vocab = Vocab(colors + objects, name="meta")
 
     encoded_metadata = []
     for ((obj1, col1), (obj2, col2)) in metadata:
         encoded_metadata.append(
             [
-                [object_vocab.stoi[obj1], colors_vocab.stoi[col1]],
-                [object_vocab.stoi[obj2], colors_vocab.stoi[col2]],
+                [meta_vocab.stoi[obj1], meta_vocab.stoi[col1]],
+                [meta_vocab.stoi[obj2], meta_vocab.stoi[col2]],
             ]
         )
-    return np.array(encoded_metadata), colors_vocab, object_vocab
+    return np.array(encoded_metadata), meta_vocab
 
 
 if __name__ == "__main__":
@@ -89,7 +84,5 @@ if __name__ == "__main__":
     object_types = ["box", "sphere", "cylinder", "torus", "ellipsoid"]
 
     a, colors_vocab, object_vocab = encode_metadata(tmp)
-    print(a)
-    a, colors_vocab, object_vocab = encode_metadata(tmp, combined=True)
     print(a)
     print(a.shape)

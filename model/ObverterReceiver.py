@@ -16,8 +16,7 @@ class ObverterReceiver(nn.Module):
         cell_type="lstm",
         genotype=None,
         dataset_type="meta",
-        object_vocab_size=None,
-        color_vocab_size=None,
+        meta_vocab_size=None,
     ):
         super().__init__()
 
@@ -41,8 +40,7 @@ class ObverterReceiver(nn.Module):
         self.obverter_module = ObverterMetaVisualModule(
             hidden_size=hidden_size,
             dataset_type=dataset_type,
-            object_vocab_size=object_vocab_size,
-            color_vocab_size=color_vocab_size,
+            meta_vocab_size=meta_vocab_size,
         )
 
         self.output_layer = nn.Sequential(
