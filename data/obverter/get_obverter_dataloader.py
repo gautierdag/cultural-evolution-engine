@@ -42,7 +42,6 @@ def load_images_dict():
     asset_dir = dir_path + "/assets"
     cache_filename = asset_dir + "/{}_cache.pkl".format(N_DATA_SAMPLES)
 
-    print("Looking for cache file {}".format(cache_filename))
     try:
         images_cache = pickle.load(open(cache_filename, "rb"))
         return images_cache
@@ -166,7 +165,6 @@ def get_obverter_dataset(
     dataset_path = "{}/{}_dataset.npy".format(dir_path, dataset_name)
     metadata_path = "{}/{}_metadata.npy".format(dir_path, dataset_name)
     if os.path.isfile(dataset_path) and os.path.isfile(metadata_path):
-        print("Loading dataset and metadata from file")
         dataset = np.load(dataset_path)
         metadata = pickle.load(open(metadata_path, "rb"))
     else:
@@ -222,7 +220,7 @@ def get_obverter_dataloader(
         dataset_name="valid",
         meta_vocab=meta_vocab,  # use vocab from train
     )
-    test_dataset, _ = get_obverter_dataset(
+    test_dataset, _, = get_obverter_dataset(
         dataset_type=dataset_type,
         dataset_length=TEST_DATASET_SIZE,
         dataset_name="test",

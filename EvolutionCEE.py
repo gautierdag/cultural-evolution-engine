@@ -150,8 +150,7 @@ class EvolutionCEE(BaseCEE):
 
         return metrics
 
-    @staticmethod
-    def evaluate_pair(sender, receiver, test_data):
+    def evaluate_pair(self, sender, receiver, test_data):
         """
         Evaluates pair of sender/receiver on test data and returns avg loss/acc
         and generated messages
@@ -167,7 +166,7 @@ class EvolutionCEE(BaseCEE):
         sender_model = sender.get_model()
         receiver_model = receiver.get_model()
 
-        model = get_trainer(sender_model, receiver_model)
+        model = self.get_trainer(sender_model, receiver_model)
         model.to(device)
         test_loss_meter, test_acc_meter, entropy_meter, test_messages, hidden_sender, hidden_receiver = evaluate(
             model, test_data
@@ -333,7 +332,7 @@ class EvolutionCEE(BaseCEE):
                 dataformats="HWC",
             )
 
-    def get_trainer(sender, receiver):
+    def get_trainer(self, sender, receiver):
         if self.params.task == "shapes":
             return ShapesTrainer(sender, receiver)
         elif self.params.task == "obverter":
