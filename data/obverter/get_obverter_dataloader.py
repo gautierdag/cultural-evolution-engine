@@ -190,7 +190,9 @@ def get_obverter_dataset(
 
     # return dataset with raw images
     elif dataset_type == "raw":
-        return ObverterDataset(dataset, images_dict["images"], mean=mean, std=std)
+        return ObverterDataset(
+            dataset, images_dict["images"], mean=mean, std=std, raw=True
+        )
 
     elif dataset_type == "meta":
         encoded_meta = get_obverter_metadata(dataset=dataset_name)

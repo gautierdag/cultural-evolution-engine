@@ -3,8 +3,11 @@ import torchvision.transforms
 
 
 class ObverterDataset:
-    def __init__(self, dataset, features, mean=None, std=None, metadata=False):
+    def __init__(
+        self, dataset, features, mean=None, std=None, metadata=False, raw=False
+    ):
         self.metadata = metadata
+        self.raw = raw
         self.dataset = dataset
 
         # encoded metadata (using a vocabulary)
@@ -16,13 +19,19 @@ class ObverterDataset:
             std = np.std(features, axis=0)
             std[np.nonzero(std == 0.0)] = 1.0  # nan is because of dividing by zero
 
-        self.mean = mean.transpose(2, 0, 1)  # channel first
-        self.std = std.transpose(2, 0, 1)
+            if len(mean.shape) == 3:  # raw images
+                mean = mean.mean(axis=(0, 1))  # channel average
+                std = std.mean(axis=(0, 1))  # channel average
+
+        self.mean = mean
+        self.std = std
+
+        if not raw and not metadata:
+            self.features = (features - self.mean) / (2 * self.std)
 
         # we normalize
         self.transforms = torchvision.transforms.Compose(
             [
-                torchvision.transforms.ToPILImage(),
                 torchvision.transforms.ToTensor(),
                 torchvision.transforms.Normalize(self.mean, self.std),
             ]
@@ -34,9 +43,10 @@ class ObverterDataset:
             second_image = self.features[idx][1]
         else:
             first_image = self.features[self.dataset[0][idx]]
-            first_image = self.transforms(first_image)
             second_image = self.features[self.dataset[1][idx]]
-            second_image = self.transforms(second_image)
+            if self.raw:
+                first_image = self.transforms(first_image)
+                second_image = self.transforms(second_image)
 
         target = self.dataset[2][idx]  # label
         return (first_image, second_image, target)
