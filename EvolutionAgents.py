@@ -41,6 +41,7 @@ class SenderAgent(BaseAgent):
                 greedy=self.args.greedy,
                 cell_type=self.args.cell_type,
                 genotype=genotype,
+                dataset_type=self.args.dataset_type,
             )
         if self.args.task == "obverter":
             sender = ObverterSender(
@@ -101,6 +102,7 @@ class ReceiverAgent(BaseAgent):
                 embedding_size=self.args.embedding_size,
                 cell_type=self.args.cell_type,
                 genotype=genotype,
+                dataset_type=self.args.dataset_type,
             )
         if self.args.task == "obverter":
             receiver = ObverterReceiver(
