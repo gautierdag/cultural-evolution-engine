@@ -223,12 +223,19 @@ def main(args):
 
     if args.task == "shapes":
         train_data, valid_data, test_data = get_shapes_dataloader(
-            batch_size=args.batch_size, k=args.k, debug=args.debugging
+            batch_size=args.batch_size,
+            k=args.k,
+            debug=args.debugging,
+            dataset_type=args.dataset_type,
         )
         valid_meta_data = get_shapes_metadata(dataset="valid")
         valid_features = get_shapes_features(dataset="valid")
         eval_train_data = get_shapes_dataloader(
-            batch_size=args.batch_size, k=args.k, debug=args.debugging, dataset="train"
+            batch_size=args.batch_size,
+            k=args.k,
+            debug=args.debugging,
+            dataset="train",
+            dataset_type=args.dataset_type,
         )
 
     # Generate population and save intial models
