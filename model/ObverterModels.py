@@ -15,19 +15,24 @@ class ObverterMetaVisualModule(nn.Module):
         super(ObverterMetaVisualModule, self).__init__()
         self.dataset_type = dataset_type
         self.hidden_size = hidden_size
+        self.process = False
 
-        if dataset_type == "features":
+        if dataset_type == "features" and in_features != hidden_size:
             self.process_input = nn.Linear(in_features, hidden_size)
+            self.process = True
 
-        if dataset_type == "meta":
+        if dataset_type == "meta" and meta_vocab_size != hidden_size:
             self.process_input = nn.Linear(meta_vocab_size, hidden_size)
+            self.process = True
 
     def forward(self, input):
         batch_size = input.shape[0]
 
         # process precomputed features by reducing them to hidden size
         # or process metadata input (one hot encoding -> hidden size)
-        if self.dataset_type == "features" or self.dataset_type == "meta":
+        if (
+            self.dataset_type == "features" or self.dataset_type == "meta"
+        ) and self.process:
             input = self.process_input(input)
 
         assert input.shape[1] == self.hidden_size
