@@ -269,6 +269,11 @@ def baseline(args):
     i = 0
     while i < args.iterations:
         for train_batch in train_data:
+
+            if early_stopping.is_converged:
+                print("Converged in iterations {}".format(i))
+                break
+
             loss, acc = train_one_batch(model, train_batch, optimizer)
 
             if i % args.log_interval == 0:
@@ -328,9 +333,6 @@ def baseline(args):
                     )
                 )
 
-                if early_stopping.is_converged:
-                    print("Converged in iterations {}".format(i))
-                    break
             i += 1
 
     best_model = get_trainer(sender, receiver, args)
