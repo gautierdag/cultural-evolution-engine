@@ -179,10 +179,11 @@ def get_sender_receiver(args):
 
 
 def get_trainer(sender, receiver, args):
+    extract_features = args.dataset_type == "raw"
     if args.task == "shapes":
-        return ShapesTrainer(sender, receiver)
+        return ShapesTrainer(sender, receiver, extract_features=extract_features)
     if args.task == "obverter":
-        return ObverterTrainer(sender, receiver)
+        return ObverterTrainer(sender, receiver, extract_features=extract_features)
 
 
 def baseline(args):
@@ -346,6 +347,9 @@ def baseline(args):
     # Update receiver and sender files with new state
     torch.save(best_model.sender, sender_file)
     torch.save(best_model.receiver, receiver_file)
+
+    if args.dataset_type == "raw":
+        torch.save(best_model.visual_module, "data/extractor_{}.p".format(args.task))
 
     torch.save(test_messages, "{}/test_messages.p".format(run_folder))
     pickle.dump(

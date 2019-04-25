@@ -151,7 +151,11 @@ def generate_dataset(images_cache, dataset_length=1000):
 
 
 def get_obverter_dataset(
-    dataset_type="features", dataset_length=1000, dataset_name="train"
+    dataset_type="features",
+    dataset_length=1000,
+    dataset_name="train",
+    mean=None,
+    std=None,
 ):
     """
     Args: 
@@ -190,7 +194,7 @@ def get_obverter_dataset(
 
     # return dataset with raw images
     elif dataset_type == "raw":
-        return ObverterDataset(dataset, images_dict["images"])
+        return ObverterDataset(dataset, images_dict["images"], mean=mean, std=std)
 
     elif dataset_type == "meta":
         encoded_meta = get_obverter_metadata(dataset=dataset_name)
@@ -214,9 +218,15 @@ def get_obverter_dataloader(
         dataset_type=dataset_type,
         dataset_length=VALID_DATASET_SIZE,
         dataset_name="valid",
+        mean=train_dataset.mean,
+        std=train_dataset.std,
     )
     test_dataset = get_obverter_dataset(
-        dataset_type=dataset_type, dataset_length=TEST_DATASET_SIZE, dataset_name="test"
+        dataset_type=dataset_type,
+        dataset_length=TEST_DATASET_SIZE,
+        dataset_name="test",
+        mean=train_dataset.mean,
+        std=train_dataset.std,
     )
 
     if debug:  # reduced dataset sizes if debugging

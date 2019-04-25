@@ -2,20 +2,33 @@ import numpy as np
 import torch
 import random
 from torch.utils.data.sampler import Sampler
+import torchvision.transforms
+from PIL import Image
 
 
 class ShapesDataset:
-    def __init__(self, features, mean=None, std=None, metadata=False):
-        if metadata:
-            self.features = features
-        else:
-            if mean is None:
-                mean = np.mean(features, axis=0)
-                std = np.std(features, axis=0)
-                std[np.nonzero(std == 0.0)] = 1.0  # nan is because of dividing by zero
-            self.mean = mean
-            self.std = std
+    def __init__(self, features, mean=None, std=None, metadata=False, raw=False):
+        self.metadata = metadata
+        self.raw = raw
+        self.features = features
+
+        if mean is None:
+            mean = np.mean(features, axis=0)
+            std = np.std(features, axis=0)
+            std[np.nonzero(std == 0.0)] = 1.0  # nan is because of dividing by zero
+        self.mean = mean
+        self.std = std
+
+        if not raw and not metadata:
             self.features = (features - self.mean) / (2 * self.std)
+
+        self.transforms = torchvision.transforms.Compose(
+            [
+                torchvision.transforms.ToPILImage(),
+                torchvision.transforms.Resize((128, 128), Image.LINEAR),
+                torchvision.transforms.ToTensor(),
+            ]
+        )
 
     def __getitem__(self, indices):
         target_idx = indices[0]
@@ -23,9 +36,16 @@ class ShapesDataset:
 
         distractors = []
         for d_idx in distractors_idxs:
-            distractors.append(self.features[d_idx])
+            distractor_img = self.features[d_idx]
+            if self.raw:
+                distractor_img = self.transforms(distractor_img)
+            distractors.append(distractor_img)
 
-        return (self.features[target_idx], distractors)
+        target_img = self.features[target_idx]
+        if self.raw:
+            target_img = self.transforms(target_img)
+
+        return (target_img, distractors)
 
     def __len__(self):
         return self.features.shape[0]

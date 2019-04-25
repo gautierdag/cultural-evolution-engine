@@ -25,6 +25,21 @@ def get_dataloaders(
         dataset_type (str, optional): what datatype encoding to use: {"meta", "features", "raw"}
                                       default: "features"
     """
+    if dataset_type == "raw":
+        train_features = np.load(dir_path + "/balanced/train.input.npy")
+        valid_features = np.load(dir_path + "/balanced/valid.input.npy")
+        test_features = np.load(dir_path + "/balanced/test.input.npy")
+
+        train_dataset = ShapesDataset(train_features, raw=True)
+
+        # All features are normalized with train mean and std
+        valid_dataset = ShapesDataset(
+            valid_features, mean=train_dataset.mean, std=train_dataset.std, raw=True
+        )
+        test_dataset = ShapesDataset(
+            test_features, mean=train_dataset.mean, std=train_dataset.std, raw=True
+        )
+
     if dataset_type == "features":
         train_features = np.load(dir_path + "/train_features.npy")
         valid_features = np.load(dir_path + "/valid_features.npy")

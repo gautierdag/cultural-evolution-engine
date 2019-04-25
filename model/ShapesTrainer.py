@@ -1,15 +1,20 @@
 import torch
 import torch.nn as nn
+from .visual_module import CNN
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class ShapesTrainer(nn.Module):
-    def __init__(self, sender, receiver):
+    def __init__(self, sender, receiver, extract_features=False):
         super().__init__()
 
         self.sender = sender
         self.receiver = receiver
+
+        self.extract_features = extract_features
+        if extract_features:
+            self.visual_module = CNN(sender.hidden_size)
 
     def _pad(self, messages, seq_lengths):
         """
@@ -38,6 +43,10 @@ class ShapesTrainer(nn.Module):
 
         target = target.to(device)
         distractors = [d.to(device) for d in distractors]
+
+        if self.extract_features:
+            target = self.visual_module(target)
+            distractors = [self.visual_module(d) for d in distractors]
 
         messages, lengths, entropy, h_s = self.sender(tau, hidden_state=target)
         messages = self._pad(messages, lengths)

@@ -1,16 +1,22 @@
 import numpy as np
 import torch
 import torch.nn as nn
+from .visual_module import CNN
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class ObverterTrainer(nn.Module):
-    def __init__(self, sender, receiver):
+    def __init__(self, sender, receiver, extract_features=False):
         super().__init__()
 
         self.sender = sender
         self.receiver = receiver
+
+        self.extract_features = extract_features
+        if extract_features:
+            self.visual_module = CNN(sender.hidden_size)
+
         self.loss = nn.CrossEntropyLoss(reduction="mean")
 
     def _pad(self, messages, seq_lengths):
@@ -40,6 +46,11 @@ class ObverterTrainer(nn.Module):
 
         first_image = first_image.to(device)
         second_image = second_image.to(device)
+
+        if self.extract_features:
+            first_image = self.visual_module(first_image)
+            second_image = self.visual_module(second_image)
+
         label = label.to(device)
 
         messages, lengths, entropy, h_s = self.sender(first_image, tau)

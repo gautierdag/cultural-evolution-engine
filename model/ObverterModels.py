@@ -26,14 +26,13 @@ class ObverterMetaVisualModule(nn.Module):
         batch_size = input.shape[0]
 
         # process precomputed features by reducing them to hidden size
-        if self.dataset_type == "features":
-            embedding = self.process_input(input)
-        # process metadata input with same vocab for color/object
-        if self.dataset_type == "meta":
-            embedding = self.process_input(input)
+        # or process metadata input (one hot encoding -> hidden size)
+        if self.dataset_type == "features" or self.dataset_type == "meta":
+            input = self.process_input(input)
 
-        assert embedding.shape[1] == self.hidden_size
-        return embedding
+        assert input.shape[1] == self.hidden_size
+
+        return input
 
 
 class ObverterSender(nn.Module):
@@ -64,7 +63,7 @@ class ObverterSender(nn.Module):
         self.hidden_size = hidden_size
         self.greedy = greedy
 
-        self.obverter_module = ObverterMetaVisualModule(
+        self.input_module = ObverterMetaVisualModule(
             hidden_size=hidden_size, dataset_type=dataset_type
         )
 
@@ -160,7 +159,7 @@ class ObverterSender(nn.Module):
         Hidden state here represents the encoded image/metadata/features - initializes the RNN from it.
         """
 
-        image_representation = self.obverter_module(image_representation)
+        image_representation = self.input_module(image_representation)
 
         # initialize the rnn using the obverter module
         state, batch_size = self._init_state(image_representation, type(self.rnn))
@@ -260,7 +259,7 @@ class ObverterReceiver(nn.Module):
             torch.empty((vocab_size, embedding_size), dtype=torch.float32)
         )
 
-        self.obverter_module = ObverterMetaVisualModule(
+        self.input_module = ObverterMetaVisualModule(
             hidden_size=hidden_size, dataset_type=dataset_type
         )
 
@@ -306,7 +305,7 @@ class ObverterReceiver(nn.Module):
         if self.cell_type == "lstm":
             h = h[0]  # keep only hidden state
 
-        image_representation = self.obverter_module(input)
+        image_representation = self.input_module(input)
         combined = torch.cat((h, image_representation), dim=1)
         prediction = self.output_layer(combined)
 

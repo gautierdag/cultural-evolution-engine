@@ -22,9 +22,6 @@ class EvolutionCEE(BaseCEE):
         self.run_folder = run_folder
         super().__init__(params)
 
-        if params.evolution:
-            self.hall_of_shame = set()
-
     def save(self):
         pickle.dump(self, open(self.run_folder + "/cee.p", "wb"))
 
@@ -280,11 +277,7 @@ class EvolutionCEE(BaseCEE):
             agents.reverse()  # resort from worst to best
             for w in agents[:c]:
                 worst_agent = getattr(self, att)[w]
-                # add hall of shame logic - note might get stuck in loop
-                # self.hall_of_shame.add(worst_agent.genotype)
-                new_genotype = mutate_genotype(
-                    best_agent.genotype, hall_of_shame=self.hall_of_shame
-                )
+                new_genotype = mutate_genotype(best_agent.genotype)
                 worst_agent.mutate(new_genotype)
 
     def get_avg_age(self):

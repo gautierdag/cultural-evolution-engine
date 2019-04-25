@@ -22,6 +22,7 @@ class ShapesMetaVisualModule(nn.Module):
         self.features_dim = features_dim
         self.hidden_size = hidden_size
         self.process = True
+
         if dataset_type == "features":
             if features_dim == hidden_size:
                 self.process = False
@@ -39,13 +40,11 @@ class ShapesMetaVisualModule(nn.Module):
 
     def forward(self, input):
         batch_size = input.shape[0]
-
         # reduce features to hidden, or hidden to features
-        if self.dataset_type == "features" and self.process:
-            input = self.process_input(input)
-
-        # reduce metadata to hidden, or hidden to metadata
-        if self.dataset_type == "meta":
+        # or reduce metadata to hidden, or hidden to metadata
+        if self.process and (
+            self.dataset_type == "features" or self.dataset_type == "meta"
+        ):
             input = self.process_input(input)
 
         return input
@@ -75,7 +74,7 @@ class ShapesSender(nn.Module):
         else:
             self.eos_id = eos_id
 
-        self.shapes_module = ShapesMetaVisualModule(
+        self.input_module = ShapesMetaVisualModule(
             hidden_size=hidden_size, dataset_type=dataset_type
         )
 
@@ -173,7 +172,7 @@ class ShapesSender(nn.Module):
         discrete sampling.
         Hidden state here represents the encoded image/metadata - initializes the RNN from it.
         """
-        hidden_state = self.shapes_module(hidden_state)
+        hidden_state = self.input_module(hidden_state)
         state, batch_size = self._init_state(hidden_state, type(self.rnn))
 
         # Init output
@@ -258,7 +257,7 @@ class ShapesReceiver(nn.Module):
         self.hidden_size = hidden_size
         self.cell_type = cell_type
 
-        self.shapes_module = ShapesMetaVisualModule(
+        self.input_module = ShapesMetaVisualModule(
             hidden_size=hidden_size, dataset_type=dataset_type, sender=False
         )
 
@@ -311,6 +310,6 @@ class ShapesReceiver(nn.Module):
         if self.cell_type == "lstm":
             h = h[0]  # keep only hidden state
 
-        out = self.shapes_module(h)
+        out = self.input_module(h)
 
         return out, emb
