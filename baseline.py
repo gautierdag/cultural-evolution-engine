@@ -349,6 +349,7 @@ def baseline(args):
     torch.save(best_model.receiver, receiver_file)
 
     if args.dataset_type == "raw":
+        best_model.to(torch.device("cpu"))
         torch.save(best_model.visual_module, "data/extractor_{}.p".format(args.task))
 
     torch.save(test_messages, "{}/test_messages.p".format(run_folder))

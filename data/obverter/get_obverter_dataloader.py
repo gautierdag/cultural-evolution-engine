@@ -4,7 +4,7 @@ import numpy as np
 import os
 
 import torch
-import torchvision.models as models
+
 from torch.utils.data import DataLoader, Subset
 
 from PIL import Image
@@ -178,16 +178,12 @@ def get_obverter_dataset(
 
     # return dataset with precomputed features
     if dataset_type == "features":
-        # Load Pretrained model and move model to device
-        vgg16 = models.vgg16(pretrained=True)
-        vgg16.to(device)
-        vgg16.eval()
 
         features_path = "{}/{}_features.npy".format(dir_path, N_DATA_SAMPLES)
         if os.path.isfile(features_path):
             features = np.load(features_path)
         else:
-            features = get_features(vgg16, images_dict["images"])
+            features = get_features("obverter", images_dict["images"])
             np.save(features_path, features)
         assert len(features) == len(images_dict["images"])
         return ObverterDataset(dataset, features)

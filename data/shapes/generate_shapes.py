@@ -4,7 +4,6 @@ import numpy as np
 from random import shuffle
 
 import torch
-import torchvision.models as models
 
 from .generate_images import get_image
 from ..feature_extractor import get_features
@@ -74,19 +73,6 @@ def generate_shapes_dataset():
         pickle.dump(
             set_metadata, open("{}/{}.metadata.p".format(folder_name, set_name), "wb")
         )
-
-    # --- Getting Features for the Generated Images ----
-
-    # Load Pretrained model and move model to device
-    vgg16 = models.vgg16(pretrained=True)
-    vgg16.to(device)
-    vgg16.eval()
-
-    # get features from train, valid, and test
-    for set_name in sets.keys():
-        images = np.load("{}/{}.input.npy".format(folder_name, set_name))
-        features = get_features(vgg16, images)
-        np.save("{}/{}_features.npy".format(dir_path, set_name), features)
 
 
 if __name__ == "__main__":

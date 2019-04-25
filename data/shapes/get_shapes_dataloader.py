@@ -10,6 +10,23 @@ from .get_shapes_metadata import get_shapes_metadata
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 
+def get_shapes_features(dataset="test"):
+    """
+    Returns numpy array with matching features
+    Args:
+        dataset (str) in {'train', 'valid', 'test'}
+    """
+    features_path = "{}/{}_features.npy".format(dir_path, dataset)
+
+    if not os.path.isfile(features_path):
+        images = np.load("balanced/{}.input.npy".format(dataset))
+        features = get_features("shapes", images)
+        np.save(features_path, features)
+        assert len(features) == len(images)
+
+    return np.load(features_path)
+
+
 def get_dataloaders(
     batch_size=16, k=3, debug=False, dataset="all", dataset_type="features"
 ):
@@ -41,9 +58,10 @@ def get_dataloaders(
         )
 
     if dataset_type == "features":
-        train_features = np.load(dir_path + "/train_features.npy")
-        valid_features = np.load(dir_path + "/valid_features.npy")
-        test_features = np.load(dir_path + "/test_features.npy")
+
+        train_features = get_shapes_features(dataset="train")
+        valid_features = get_shapes_features(dataset="valid")
+        test_features = get_shapes_features(dataset="test")
 
         if debug:
             train_features = train_features[:10000]
@@ -57,6 +75,7 @@ def get_dataloaders(
         test_dataset = ShapesDataset(
             test_features, mean=train_dataset.mean, std=train_dataset.std
         )
+
     if dataset_type == "meta":
         train_meta = get_shapes_metadata(dataset="train")
         valid_meta = get_shapes_metadata(dataset="valid")
@@ -129,11 +148,3 @@ def get_shapes_dataloader(
         dataset_type=dataset_type,
     )
 
-
-def get_shapes_features(dataset="test"):
-    """
-    Returns numpy array with matching features
-    Args:
-        dataset (str) in {'train', 'valid', 'test'}
-    """
-    return np.load(dir_path + "/{}_features.npy".format(dataset))

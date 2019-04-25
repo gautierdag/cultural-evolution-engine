@@ -33,8 +33,12 @@ class ImageDataset(data.Dataset):
         return self.data.shape[0]
 
 
-def get_features(model, images):
+def get_features(task, images):
     print("Extracting features")
+
+    model_name = "data/extractor_{}.p".format(dir_path, task)
+    model = torch.load(model_name, map_location=lambda storage, location: storage)
+    model.to(device)
 
     dataloader = DataLoader(ImageDataset(images), batch_size=BATCH_SIZE)
 
