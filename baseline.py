@@ -261,18 +261,20 @@ def baseline(args):
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
     # early stopping with patience set to approx 10 epochs
-    early_stopping = EarlyStopping(
-        mode="max", patience=int((len(train_data) * 10) / args.log_interval)
-    )
+    early_stopping = EarlyStopping(mode="max", patience=int((5000 / args.log_interval)))
 
     # Train
     i = 0
     while i < args.iterations:
+
+        if early_stopping.is_converged:
+            print("Converged in iterations {}".format(i))
+            break
+
         for train_batch in train_data:
 
             if early_stopping.is_converged:
-                print("Converged in iterations {}".format(i))
-                break
+                continue
 
             loss, acc = train_one_batch(model, train_batch, optimizer)
 
