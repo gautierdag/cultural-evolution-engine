@@ -10,7 +10,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class ObverterMetaVisualModule(nn.Module):
     def __init__(
-        self, hidden_size=512, dataset_type="meta", in_features=8192, meta_vocab_size=13
+        self, hidden_size=512, dataset_type="meta", in_features=512, meta_vocab_size=13
     ):
         super(ObverterMetaVisualModule, self).__init__()
         self.dataset_type = dataset_type
