@@ -54,7 +54,7 @@ def get_features(task, images):
     features = []
     for i, x in tqdm(enumerate(dataloader), total=len(dataloader)):
         x = x.to(device)
-        y = model.features(x)
+        y = model(x)
         y = y.view(y.size(0), -1).detach().cpu().numpy()
         features.append(y)
 
