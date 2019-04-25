@@ -19,22 +19,14 @@ class ObverterDataset:
             std = np.std(features, axis=0)
             std[np.nonzero(std == 0.0)] = 1.0  # nan is because of dividing by zero
 
-            if len(mean.shape) == 3:  # raw images
-                mean = mean.mean(axis=(0, 1))  # channel average
-                std = std.mean(axis=(0, 1))  # channel average
-
         self.mean = mean
         self.std = std
 
         if not raw and not metadata:
             self.features = (features - self.mean) / (2 * self.std)
 
-        # we normalize
         self.transforms = torchvision.transforms.Compose(
-            [
-                torchvision.transforms.ToTensor(),
-                torchvision.transforms.Normalize(self.mean, self.std),
-            ]
+            [torchvision.transforms.ToTensor()]
         )
 
     def __getitem__(self, idx):
