@@ -1,4 +1,5 @@
 import numpy as np
+import os
 from tqdm import tqdm
 
 import torch
@@ -6,6 +7,7 @@ import torchvision.transforms
 import torch.utils.data as data
 from torch.utils.data import DataLoader
 
+dir_path = os.path.dirname(os.path.realpath(__file__))
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 BATCH_SIZE = 16  # batch size used to extract features
@@ -36,7 +38,14 @@ class ImageDataset(data.Dataset):
 def get_features(task, images):
     print("Extracting features")
 
-    model_name = "data/extractor_{}.p".format(dir_path, task)
+    model_name = "{}/extractor_{}.p".format(dir_path, task)
+    if not os.path.isfile(model_name):
+        return ValueError(
+            "Feature Extractor for {} missing. Train baseline using 'raw' features.".format(
+                task
+            )
+        )
+
     model = torch.load(model_name, map_location=lambda storage, location: storage)
     model.to(device)
 
