@@ -52,7 +52,7 @@ def parse_arguments(args):
     )
     parser.add_argument(
         "--greedy",
-        help="Use argmax at prediction time instead of sampling (default: False",
+        help="Use argmax at prediction time instead of sampling (default: False)",
         action="store_true",
     )
     parser.add_argument(

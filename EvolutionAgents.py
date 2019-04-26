@@ -64,7 +64,7 @@ class SenderAgent(BaseAgent):
 
         vocab = AgentVocab(self.args.vocab_size)
 
-        model = get_sender()
+        model = self.get_sender()
         torch.save(model, self.filename)
 
         self.initialize_loss_acc()
