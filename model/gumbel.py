@@ -3,7 +3,7 @@ from torch.distributions.relaxed_categorical import RelaxedOneHotCategorical
 
 
 def gumbel_softmax(probs, tau, hard):
-    """ Computes samplig from the Gumbel Softmax (GS) distribution
+    """ Computes sampling from the Gumbel Softmax (GS) distribution
     Args:
         probs (torch.tensor): probabilities of shape [batch_size, n_classes] 
         tau (float): temperature parameter for the GS

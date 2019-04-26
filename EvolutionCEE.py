@@ -8,6 +8,8 @@ from cee.metrics import (
     representation_similarity_analysis,
     language_entropy,
     message_distance,
+    kl_divergence,
+    jaccard_similarity,
 )
 
 from EvolutionAgents import SenderAgent, ReceiverAgent
@@ -110,11 +112,15 @@ class EvolutionCEE(BaseCEE):
             "pseudo_tre": 0,
             "topological_similarity": 0,
             "num_unique_messages": 0,
+            "kl_divergence": 0,
         }
 
         messages = []
+        sentence_probabilities = []
         for s in self.senders[:max_senders]:
-            loss, acc, entropy, msgs, H_s, H_r = self.evaluate_pair(s, r, test_data)
+            loss, acc, entropy, msgs, sent_ps, H_s, H_r = self.evaluate_pair(
+                s, r, test_data
+            )
             metrics["num_unique_messages"] += len(torch.unique(msgs, dim=0))
             if advanced:
                 sr, si, ri, sm, ts, pt, l_entropy = self.get_message_metrics(
@@ -133,6 +139,7 @@ class EvolutionCEE(BaseCEE):
             metrics["entropy"] += entropy
 
             messages.append(msgs)
+            sentence_probabilities.append(sent_ps)
 
         pop_size = max_senders
         for metric in metrics:
@@ -142,6 +149,16 @@ class EvolutionCEE(BaseCEE):
         avg_message_dist, avg_matches = message_distance(
             torch.stack(messages, dim=1).cpu().numpy()
         )
+
+        js = jaccard_similarity(torch.stack(messages, dim=1).cpu().numpy())
+
+        kl_dist = kl_divergence(
+            torch.stack(sentence_probabilities, dim=1).cpu().numpy()
+        )
+
+        metrics["jaccard_similarity"] = js
+        metrics["kl_divergence"] = kl_dist
+
         metrics["avg_message_dist"] = avg_message_dist
         metrics["avg_matches"] = avg_matches
 
@@ -165,8 +182,8 @@ class EvolutionCEE(BaseCEE):
 
         model = self.get_trainer(sender_model, receiver_model)
         model.to(device)
-        test_loss_meter, test_acc_meter, entropy_meter, test_messages, hidden_sender, hidden_receiver = evaluate(
-            model, test_data
+        test_loss_meter, test_acc_meter, entropy_meter, test_messages, sentence_probabilities, hidden_sender, hidden_receiver = evaluate(
+            model, test_data, return_softmax=True
         )
 
         return (
@@ -174,6 +191,7 @@ class EvolutionCEE(BaseCEE):
             test_acc_meter.avg,
             entropy_meter.avg,
             test_messages,
+            sentence_probabilities,
             hidden_sender,
             hidden_receiver,
         )

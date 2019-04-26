@@ -48,7 +48,7 @@ class ShapesTrainer(nn.Module):
             target = self.visual_module(target)
             distractors = [self.visual_module(d) for d in distractors]
 
-        messages, lengths, entropy, h_s = self.sender(tau, hidden_state=target)
+        messages, lengths, entropy, h_s, sent_p = self.sender(tau, hidden_state=target)
         messages = self._pad(messages, lengths)
         r_transform, h_r = self.receiver(messages)
 
@@ -80,4 +80,12 @@ class ShapesTrainer(nn.Module):
         if self.training:
             return torch.mean(loss), torch.mean(accuracy), messages
         else:
-            return torch.mean(loss), torch.mean(accuracy), messages, h_s, h_r, entropy
+            return (
+                torch.mean(loss),
+                torch.mean(accuracy),
+                messages,
+                h_s,
+                h_r,
+                entropy,
+                sent_p,
+            )

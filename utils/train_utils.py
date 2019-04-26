@@ -61,21 +61,24 @@ def train_one_epoch(model, data, optimizer, tau=1.2):
     return loss_meter, acc_meter
 
 
-def evaluate(model, data, tau=1.2):
+def evaluate(model, data, tau=1.2, return_softmax=False):
     loss_meter = AverageMeter()
     acc_meter = AverageMeter()
     entropy_meter = AverageMeter()
-    hidden_sender, hidden_receiver, messages = [], [], []
+    hidden_sender, hidden_receiver = [], []
+    messages, sentence_probabilities = [], []
 
     model.eval()
     for d in data:
         if len(d) == 2:  # shapes
             target, distractors = d
-            loss, acc, msg, h_s, h_r, entropy = model(target, distractors, tau=tau)
+            loss, acc, msg, h_s, h_r, entropy, sent_p = model(
+                target, distractors, tau=tau
+            )
 
         if len(d) == 3:  # obverter task
             first_image, second_image, label = d
-            loss, acc, msg, h_s, h_r, entropy = model(
+            loss, acc, msg, h_s, h_r, entropy, sent_p = model(
                 first_image, second_image, label, tau=tau
             )
 
@@ -84,20 +87,32 @@ def evaluate(model, data, tau=1.2):
         entropy_meter.update(entropy.item())
 
         messages.append(msg)
+        sentence_probabilities.append(sent_p)
         hidden_sender.append(h_s.detach().cpu().numpy())
         hidden_receiver.append(h_r.detach().cpu().numpy())
 
     hidden_sender = np.concatenate(hidden_sender)
     hidden_receiver = np.concatenate(hidden_receiver)
 
-    return (
-        loss_meter,
-        acc_meter,
-        entropy_meter,
-        torch.cat(messages, 0),
-        hidden_sender,
-        hidden_receiver,
-    )
+    if return_softmax:
+        return (
+            loss_meter,
+            acc_meter,
+            entropy_meter,
+            torch.cat(messages, 0),
+            torch.cat(sentence_probabilities, 0),
+            hidden_sender,
+            hidden_receiver,
+        )
+    else:
+        return (
+            loss_meter,
+            acc_meter,
+            entropy_meter,
+            torch.cat(messages, 0),
+            hidden_sender,
+            hidden_receiver,
+        )
 
 
 class EarlyStopping:

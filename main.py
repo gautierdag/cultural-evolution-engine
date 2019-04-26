@@ -184,7 +184,7 @@ def main(args):
 
     # Generate name for experiment folder
     experiment_name = get_filename_from_cee_params(args)
-    experiment_folder = "runs/" + experiment_name
+    experiment_folder = "runs/" + experiment_name + "/" + str(args.seed)
 
     # Create Experiment folder if doesn't exist
     create_folder_if_not_exists(experiment_folder)
@@ -193,7 +193,7 @@ def main(args):
     pickle.dump(args, open("{}/experiment_params.p".format(experiment_folder), "wb"))
 
     # Tensorboard tracker for evolution process
-    writer = SummaryWriter(log_dir=experiment_folder + "/" + str(args.seed))
+    writer = SummaryWriter(log_dir=experiment_folder)
 
     # Load data
     train_data, valid_data, test_data = get_shapes_dataloader(
@@ -269,6 +269,10 @@ def main(args):
                 writer.add_scalar(
                     "generalization_error", train_metrics["acc"] - metrics["acc"], i
                 )
+                writer.add_scalar(
+                    "jaccard_similarity", metrics["jaccard_similarity"], i
+                )
+                writer.add_scalar("kl_divergence", metrics["kl_divergence"], i)
 
                 metrics["avg_age"] = evolution_cee.get_avg_age()
                 writer.add_scalar("avg_age", metrics["avg_age"], i)

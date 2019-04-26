@@ -53,7 +53,7 @@ class ObverterTrainer(nn.Module):
 
         label = label.to(device)
 
-        messages, lengths, entropy, h_s = self.sender(first_image, tau)
+        messages, lengths, entropy, h_s, sentence_prob = self.sender(first_image, tau)
         messages = self._pad(messages, lengths)
         prediction, h_r = self.receiver(messages, second_image)
 
@@ -68,5 +68,5 @@ class ObverterTrainer(nn.Module):
         if self.training:
             return loss, accuracy, messages
         else:
-            return loss, accuracy, messages, h_s, h_r, entropy
+            return loss, accuracy, messages, h_s, h_r, entropy, sentence_prob
 

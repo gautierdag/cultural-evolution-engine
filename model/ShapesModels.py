@@ -201,6 +201,8 @@ class ShapesSender(nn.Module):
 
         embeds = []  # keep track of the embedded sequence
         entropy = 0.0
+        sentence_probability = torch.zeros((batch_size, self.vocab_size), device=device)
+
         for i in range(self.output_len):
             if self.training:
                 emb = torch.matmul(output[-1], self.embedding)
@@ -221,8 +223,10 @@ class ShapesSender(nn.Module):
             if self.training:
                 token = gumbel_softmax(p, tau, hard=True)
             else:
+                sentence_probability += p.detach()
                 if self.greedy:
                     _, token = torch.max(p, -1)
+
                 else:
                     token = Categorical(p).sample()
 
@@ -238,6 +242,7 @@ class ShapesSender(nn.Module):
             seq_lengths,
             torch.mean(entropy) / self.output_len,
             torch.stack(embeds, dim=1),
+            sentence_probability,
         )
 
 
