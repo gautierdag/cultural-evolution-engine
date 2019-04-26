@@ -6,6 +6,7 @@ from torch.utils.data.sampler import BatchSampler
 from .ShapesDataset import ShapesDataset, ImagesSampler
 from .generate_shapes import generate_shapes_dataset
 from .get_shapes_metadata import get_shapes_metadata
+from ..feature_extractor import get_features
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -19,7 +20,7 @@ def get_shapes_features(dataset="test"):
     features_path = "{}/{}_features.npy".format(dir_path, dataset)
 
     if not os.path.isfile(features_path):
-        images = np.load("balanced/{}.input.npy".format(dataset))
+        images = np.load("{}/balanced/{}.input.npy".format(dir_path, dataset))
         features = get_features("shapes", images)
         np.save(features_path, features)
         assert len(features) == len(images)

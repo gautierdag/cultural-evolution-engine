@@ -6,6 +6,7 @@ import torch
 import torchvision.transforms
 import torch.utils.data as data
 from torch.utils.data import DataLoader
+from PIL import Image
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -18,13 +19,27 @@ class ImageDataset(data.Dataset):
         super().__init__()
 
         self.data = images
-        self.transforms = torchvision.transforms.Compose(
-            [
-                torchvision.transforms.ToTensor(),
-                # Normalize to (-1, 1)
-                torchvision.transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
-            ]
-        )
+
+        H, W = images.shape[1], images.shape[2]
+        if H != 128 or W != 128:
+            self.transforms = torchvision.transforms.Compose(
+                [
+                    torchvision.transforms.ToPILImage(),
+                    # Resize
+                    torchvision.transforms.Resize((128, 128), Image.LINEAR),
+                    torchvision.transforms.ToTensor(),
+                    # Normalize to (-1, 1)
+                    torchvision.transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
+                ]
+            )
+        else:
+            self.transforms = torchvision.transforms.Compose(
+                [
+                    torchvision.transforms.ToTensor(),
+                    # Normalize to (-1, 1)
+                    torchvision.transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
+                ]
+            )
 
     def __getitem__(self, index):
         image = self.data[index, :, :, :]
