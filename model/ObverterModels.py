@@ -5,8 +5,6 @@ from torch.distributions.categorical import Categorical
 from .gumbel import gumbel_softmax
 from .DARTSCell import DARTSCell
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 class ObverterMetaVisualModule(nn.Module):
     def __init__(
@@ -108,7 +106,7 @@ class ObverterSender(nn.Module):
                 self.rnn.bias_hh[self.hidden_size : 2 * self.hidden_size], val=1
             )
 
-    def _init_state(self, hidden_state, rnn_type):
+    def _init_state(self, hidden_state, rnn_type, device):
         """
             Handles the initialization of the first hidden state of the decoder.
             Hidden state + cell state in the case of an LSTM cell or
@@ -157,17 +155,22 @@ class ObverterSender(nn.Module):
         mask *= seq_lengths == initial_length
         seq_lengths[mask.nonzero()] = seq_pos + 1  # start always token appended
 
-    def forward(self, image_representation, tau):
+    def forward(self, image_representation, tau, device=None):
         """
         Performs a forward pass. If training, use Gumbel Softmax (hard) for sampling, else use
         discrete sampling.
         Hidden state here represents the encoded image/metadata/features - initializes the RNN from it.
         """
 
+        if device is None:
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         image_representation = self.input_module(image_representation)
 
         # initialize the rnn using the obverter module
-        state, batch_size = self._init_state(image_representation, type(self.rnn))
+        state, batch_size = self._init_state(
+            image_representation, type(self.rnn), device
+        )
 
         # Init output
         if self.training:
@@ -292,8 +295,10 @@ class ObverterReceiver(nn.Module):
                 self.rnn.bias_hh[self.hidden_size : 2 * self.hidden_size], val=1
             )
 
-    def forward(self, messages, input):
+    def forward(self, messages, input, device=None):
         batch_size = messages.shape[0]
+        if device is None:
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         emb = (
             torch.matmul(messages, self.embedding)

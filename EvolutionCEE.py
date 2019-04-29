@@ -16,13 +16,15 @@ from EvolutionAgents import SenderAgent, ReceiverAgent
 from model import ShapesTrainer, ObverterTrainer, generate_genotype, mutate_genotype
 from utils import create_folder_if_not_exists, train_one_batch, evaluate
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 class EvolutionCEE(BaseCEE):
-    def __init__(self, params, run_folder="runs"):
+    def __init__(self, params, run_folder="runs", device=None):
         self.run_folder = run_folder
         super().__init__(params)
+
+        self.device = device
+        if device is None:
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def save(self):
         pickle.dump(self, open(self.run_folder + "/cee.p", "wb"))
@@ -66,7 +68,6 @@ class EvolutionCEE(BaseCEE):
         receiver_model = receiver.get_model()
 
         model = self.get_trainer(sender_model, receiver_model)
-        model.to(device)
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
         loss, acc = train_one_batch(model, batch, optimizer)
@@ -181,7 +182,6 @@ class EvolutionCEE(BaseCEE):
         receiver_model = receiver.get_model()
 
         model = self.get_trainer(sender_model, receiver_model)
-        model.to(device)
         test_loss_meter, test_acc_meter, entropy_meter, test_messages, sentence_probabilities, hidden_sender, hidden_receiver = evaluate(
             model, test_data, return_softmax=True
         )
@@ -345,8 +345,11 @@ class EvolutionCEE(BaseCEE):
 
     def get_trainer(self, sender, receiver):
         if self.params.task == "shapes":
-            return ShapesTrainer(sender, receiver)
+            model = ShapesTrainer(sender, receiver, device=self.device)
         elif self.params.task == "obverter":
-            return ObverterTrainer(sender, receiver)
+            model = ObverterTrainer(sender, receiver, device=self.device)
         else:
             raise ValueError("Incorrect task parameter")
+
+        model.to(self.device)
+        return model

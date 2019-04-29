@@ -3,11 +3,9 @@ import torch
 import torch.nn as nn
 from .visual_module import CNN
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 class ObverterTrainer(nn.Module):
-    def __init__(self, sender, receiver, extract_features=False):
+    def __init__(self, sender, receiver, extract_features=False, device=None):
         super().__init__()
 
         self.sender = sender
@@ -19,6 +17,10 @@ class ObverterTrainer(nn.Module):
 
         self.loss = nn.CrossEntropyLoss(reduction="mean")
 
+        self.device = device
+        if device is None:
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     def _pad(self, messages, seq_lengths):
         """
         Pads the messages using the sequence length
@@ -26,7 +28,7 @@ class ObverterTrainer(nn.Module):
         """
         batch_size, max_len = messages.shape[0], messages.shape[1]
 
-        mask = torch.arange(max_len, device=device).expand(
+        mask = torch.arange(max_len, device=self.device).expand(
             len(seq_lengths), max_len
         ) < seq_lengths.unsqueeze(1)
 
@@ -44,18 +46,20 @@ class ObverterTrainer(nn.Module):
     def forward(self, first_image, second_image, label, tau=1.2):
         batch_size = first_image.shape[0]
 
-        first_image = first_image.to(device)
-        second_image = second_image.to(device)
+        first_image = first_image.to(self.device)
+        second_image = second_image.to(self.device)
 
         if self.extract_features:
             first_image = self.visual_module(first_image)
             second_image = self.visual_module(second_image)
 
-        label = label.to(device)
+        label = label.to(self.device)
 
-        messages, lengths, entropy, h_s, sentence_prob = self.sender(first_image, tau)
+        messages, lengths, entropy, h_s, sentence_prob = self.sender(
+            first_image, tau, device=self.device
+        )
         messages = self._pad(messages, lengths)
-        prediction, h_r = self.receiver(messages, second_image)
+        prediction, h_r = self.receiver(messages, second_image, device=self.device)
 
         loss = self.loss(prediction, label)
 

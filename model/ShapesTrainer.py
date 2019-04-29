@@ -2,11 +2,9 @@ import torch
 import torch.nn as nn
 from .visual_module import CNN
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 class ShapesTrainer(nn.Module):
-    def __init__(self, sender, receiver, extract_features=False):
+    def __init__(self, sender, receiver, extract_features=False, device=None):
         super().__init__()
 
         self.sender = sender
@@ -16,6 +14,10 @@ class ShapesTrainer(nn.Module):
         if extract_features:
             self.visual_module = CNN(sender.hidden_size)
 
+        self.device = device
+        if device is None:
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     def _pad(self, messages, seq_lengths):
         """
         Pads the messages using the sequence length
@@ -23,7 +25,7 @@ class ShapesTrainer(nn.Module):
         """
         batch_size, max_len = messages.shape[0], messages.shape[1]
 
-        mask = torch.arange(max_len, device=device).expand(
+        mask = torch.arange(max_len, device=self.device).expand(
             len(seq_lengths), max_len
         ) < seq_lengths.unsqueeze(1)
 
@@ -41,16 +43,18 @@ class ShapesTrainer(nn.Module):
     def forward(self, target, distractors, tau=1.2):
         batch_size = target.shape[0]
 
-        target = target.to(device)
-        distractors = [d.to(device) for d in distractors]
+        target = target.to(self.device)
+        distractors = [d.to(self.device) for d in distractors]
 
         if self.extract_features:
             target = self.visual_module(target)
             distractors = [self.visual_module(d) for d in distractors]
 
-        messages, lengths, entropy, h_s, sent_p = self.sender(tau, hidden_state=target)
+        messages, lengths, entropy, h_s, sent_p = self.sender(
+            tau, hidden_state=target, device=self.device
+        )
         messages = self._pad(messages, lengths)
-        r_transform, h_r = self.receiver(messages)
+        r_transform, h_r = self.receiver(messages, device=self.device)
 
         loss = 0
 
@@ -67,7 +71,7 @@ class ShapesTrainer(nn.Module):
             d_score = torch.bmm(d, r_transform).squeeze()
             all_scores[:, i + 1] = d_score
             loss += torch.max(
-                torch.tensor(0.0, device=device), 1.0 - target_score + d_score
+                torch.tensor(0.0, device=self.device), 1.0 - target_score + d_score
             )
 
         # Calculate accuracy

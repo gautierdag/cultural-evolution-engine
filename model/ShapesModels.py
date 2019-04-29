@@ -5,8 +5,6 @@ from torch.distributions.categorical import Categorical
 from .gumbel import gumbel_softmax
 from .DARTSCell import DARTSCell
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 class ShapesMetaVisualModule(nn.Module):
     def __init__(
@@ -117,7 +115,7 @@ class ShapesSender(nn.Module):
                 self.rnn.bias_hh[self.hidden_size : 2 * self.hidden_size], val=1
             )
 
-    def _init_state(self, hidden_state, rnn_type):
+    def _init_state(self, hidden_state, rnn_type, device):
         """
             Handles the initialization of the first hidden state of the decoder.
             Hidden state + cell state in the case of an LSTM cell or
@@ -166,14 +164,17 @@ class ShapesSender(nn.Module):
         mask *= seq_lengths == initial_length
         seq_lengths[mask.nonzero()] = seq_pos + 1  # start always token appended
 
-    def forward(self, tau, hidden_state=None):
+    def forward(self, tau, hidden_state=None, device=None):
         """
         Performs a forward pass. If training, use Gumbel Softmax (hard) for sampling, else use
         discrete sampling.
         Hidden state here represents the encoded image/metadata - initializes the RNN from it.
         """
+        if device is None:
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         hidden_state = self.input_module(hidden_state)
-        state, batch_size = self._init_state(hidden_state, type(self.rnn))
+        state, batch_size = self._init_state(hidden_state, type(self.rnn), device)
 
         # Init output
         if self.training:
@@ -292,7 +293,11 @@ class ShapesReceiver(nn.Module):
                 self.rnn.bias_hh[self.hidden_size : 2 * self.hidden_size], val=1
             )
 
-    def forward(self, messages):
+    def forward(self, messages, device=None):
+
+        if device is None:
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         batch_size = messages.shape[0]
 
         emb = (
