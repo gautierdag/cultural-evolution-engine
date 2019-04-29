@@ -18,8 +18,6 @@ from data import (
 
 from EvolutionCEE import EvolutionCEE
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 def parse_arguments(args):
     # Training settings
@@ -160,6 +158,13 @@ def parse_arguments(args):
         metavar="N",
         help="Initial number of nodes in DARTs cell (default: 1)",
     )
+    parser.add_argument(
+        "--gpu",
+        type=int,
+        default=0,
+        metavar="N",
+        help="GPU device (default: -1), uses any available",
+    )
 
     args = parser.parse_args(args)
 
@@ -173,6 +178,12 @@ def parse_arguments(args):
 
     if args.evolution:
         args.cell_type = "darts"
+
+    if torch.cuda.is_available() and torch.cuda.device_count() > args.gpu:
+        args.gpu = torch.device("cuda", args.gpu)
+    else:
+        print("No GPUs detected - using cpu")
+        args.gpu = torch.device("cpu")
 
     return args
 
@@ -242,9 +253,12 @@ def main(args):
     if args.resume:
         print("Resuming from checkpoint")
         evolution_cee = pickle.load(open(experiment_folder + "/cee.p", "rb"))
+        evolution_cee.device = args.gpu
         i = evolution_cee.iteration
     else:
-        evolution_cee = EvolutionCEE(args, run_folder=experiment_folder)
+        evolution_cee = EvolutionCEE(
+            args, run_folder=experiment_folder, device=args.gpu
+        )
         i = 0
 
     while i < args.iterations:
