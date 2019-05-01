@@ -183,9 +183,11 @@ def get_filename_from_baseline_params(params):
     name += "_h_{}".format(params.hidden_size)
     name += "_lr_{}".format(params.lr)
     name += "_max_len_{}".format(params.max_length)
-    name += "_k_{}".format(params.k)
+    if params.task == "shapes":
+        name += "_k_{}".format(params.k)
     name += "_vocab_{}".format(params.vocab_size)
     name += "_seed_{}".format(params.seed)
+    name += "_btch_size_{}".format(params.batch_size)
     if params.greedy:
         name += "_greedy"
     if params.debugging:

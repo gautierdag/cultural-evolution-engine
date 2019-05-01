@@ -175,9 +175,9 @@ def parse_arguments(args):
     parser.add_argument(
         "--lr",
         type=float,
-        default=1e-4,
+        default=1e-3,
         metavar="N",
-        help="Adam learning rate (default: 1e-4)",
+        help="Adam learning rate (default: 1e-3)",
     )
 
     args = parser.parse_args(args)
