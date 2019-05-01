@@ -34,7 +34,7 @@ def parse_arguments(args):
     parser.add_argument(
         "--dataset-type",
         type=str,
-        default="meta",
+        default="features",
         metavar="S",
         help="type of input used by obverter pick from raw/features/meta (default meta)",
     )
@@ -79,6 +79,13 @@ def parse_arguments(args):
         default=256,
         metavar="N",
         help="embedding size for embedding layer (default: 256)",
+    )
+    parser.add_argument(
+        "--hidden-size",
+        type=int,
+        default=512,
+        metavar="N",
+        help="hidden size for hidden layer (default: 512)",
     )
     parser.add_argument(
         "--cell-type",
@@ -164,6 +171,13 @@ def parse_arguments(args):
         default=0,
         metavar="N",
         help="GPU device (default: -1), uses any available",
+    )
+    parser.add_argument(
+        "--lr",
+        type=float,
+        default=1e-4,
+        metavar="N",
+        help="Adam learning rate (default: 1e-4)",
     )
 
     args = parser.parse_args(args)

@@ -10,7 +10,6 @@ from ..feature_extractor import get_features
 
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 SEED = 42
 

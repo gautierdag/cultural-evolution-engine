@@ -14,8 +14,6 @@ from ..feature_extractor import get_features
 from .get_obverter_metadata import get_obverter_metadata
 from .ObverterDataset import ObverterDataset
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 TRAIN_DATASET_SIZE = 10000

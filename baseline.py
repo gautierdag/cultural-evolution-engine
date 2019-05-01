@@ -46,7 +46,7 @@ def parse_arguments(args):
     parser.add_argument(
         "--dataset-type",
         type=str,
-        default="meta",
+        default="features",
         metavar="S",
         help="type of input used by dataset pick from raw/features/meta (default meta)",
     )
@@ -78,6 +78,13 @@ def parse_arguments(args):
         default=256,
         metavar="N",
         help="embedding size for embedding layer (default: 256)",
+    )
+    parser.add_argument(
+        "--hidden-size",
+        type=int,
+        default=512,
+        metavar="N",
+        help="hidden size for hidden layer (default: 512)",
     )
     parser.add_argument(
         "--batch-size",
@@ -120,6 +127,13 @@ def parse_arguments(args):
         metavar="N",
         help="Size of darts cell to use with random-darts (default: 8)",
     )
+    parser.add_argument(
+        "--lr",
+        type=float,
+        default=1e-4,
+        metavar="N",
+        help="Adam learning rate (default: 1e-4)",
+    )
 
     args = parser.parse_args(args)
 
@@ -147,6 +161,7 @@ def get_sender_receiver(args):
             args.max_length,
             vocab.bound_idx,
             embedding_size=args.embedding_size,
+            hidden_size=args.hidden_size,
             greedy=args.greedy,
             cell_type=cell_type,
             genotype=genotype,
@@ -155,6 +170,7 @@ def get_sender_receiver(args):
         receiver = ShapesReceiver(
             args.vocab_size,
             embedding_size=args.embedding_size,
+            hidden_size=args.hidden_size,
             cell_type=cell_type,
             genotype=genotype,
             dataset_type=args.dataset_type,
@@ -165,11 +181,13 @@ def get_sender_receiver(args):
             args.max_length,
             vocab.bound_idx,
             embedding_size=args.embedding_size,
+            hidden_size=args.hidden_size,
             greedy=args.greedy,
             dataset_type=args.dataset_type,
         )
         receiver = ObverterReceiver(
             args.vocab_size,
+            hidden_size=args.hidden_size,
             embedding_size=args.embedding_size,
             dataset_type=args.dataset_type,
         )
@@ -258,7 +276,7 @@ def baseline(args):
 
     model.to(device)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     # early stopping with patience set to approx 10 epochs
     early_stopping = EarlyStopping(mode="max", patience=int((5000 / args.log_interval)))
