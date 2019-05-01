@@ -54,6 +54,7 @@ class ObverterSender(nn.Module):
     ):
         super().__init__()
         self.vocab_size = vocab_size
+        self.cell_type = cell_type
         self.output_len = output_len
         self.sos_id = sos_id
 
@@ -295,7 +296,7 @@ class ObverterReceiver(nn.Module):
                 self.rnn.bias_hh[self.hidden_size : 2 * self.hidden_size], val=1
             )
 
-    def forward(self, messages, input, device=None):
+    def forward(self, image_representation, messages=None, device=None):
         batch_size = messages.shape[0]
         if device is None:
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -320,8 +321,144 @@ class ObverterReceiver(nn.Module):
         if self.cell_type == "lstm":
             h = h[0]  # keep only hidden state
 
-        image_representation = self.input_module(input)
+        image_representation = self.input_module(image_representation)
         combined = torch.cat((h, image_representation), dim=1)
         prediction = self.output_layer(combined)
 
         return prediction, emb
+
+
+class ObverterSingleModel(ObverterSender):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.output_layer = nn.Sequential(
+            nn.Linear(2 * kwargs['hidden_size'], kwargs['hidden_size']),
+            nn.ReLU(),
+            nn.Linear(kwargs['hidden_size'], 2)
+        )
+
+    def forward(self, image_representation, messages=None, tau=1.2, device=None):
+        """
+        Performs a forward pass. If training, use Gumbel Softmax (hard) for sampling, else use
+        discrete sampling.
+        Hidden state here represents the encoded image/metadata/features - initializes the RNN from it.
+        """
+
+        if device is None:
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        image_representation = self.input_module(image_representation)
+
+        # receiver role
+        if messages is None:
+
+            # initialize the rnn using the obverter module
+            state, batch_size = self._init_state(
+                image_representation, type(self.rnn), device
+            )
+
+            # Init output
+            if self.training:
+                output = [
+                    torch.zeros(
+                        (batch_size, self.vocab_size),
+                        dtype=torch.float32,
+                        device=device,
+                    )
+                ]
+                output[0][:, self.sos_id] = 1.0
+            else:
+                output = [
+                    torch.full(
+                        (batch_size,),
+                        fill_value=self.sos_id,
+                        dtype=torch.int64,
+                        device=device,
+                    )
+                ]
+
+            # Keep track of sequence lengths
+            initial_length = self.output_len + 1  # add the sos token
+            seq_lengths = (
+                torch.ones([batch_size], dtype=torch.int64, device=device)
+                * initial_length
+            )
+
+            embeds = []  # keep track of the embedded sequence
+            entropy = 0.0
+
+            sentence_probability = torch.zeros(
+                (batch_size, self.vocab_size), device=device
+            )
+
+            for i in range(self.output_len):
+                if self.training:
+                    emb = torch.matmul(output[-1], self.embedding)
+                else:
+                    emb = self.embedding[output[-1]]
+
+                embeds.append(emb)
+                state = self.rnn(emb, state)
+
+                if type(self.rnn) is nn.LSTMCell:
+                    h, c = state
+                else:
+                    h = state
+
+                p = F.softmax(self.linear_out(h), dim=1)
+                entropy += Categorical(p).entropy()
+
+                if self.training:
+                    token = gumbel_softmax(p, tau, hard=True)
+                else:
+                    sentence_probability += p.detach()
+                    if self.greedy:
+                        _, token = torch.max(p, -1)
+                    else:
+                        token = Categorical(p).sample()
+
+                    if batch_size == 1:
+                        token = token.unsqueeze(0)
+
+                output.append(token)
+
+                self._calculate_seq_len(
+                    seq_lengths, token, initial_length, seq_pos=i + 1
+                )
+
+            return (
+                torch.stack(output, dim=1),
+                seq_lengths,
+                torch.mean(entropy) / self.output_len,
+                torch.stack(embeds, dim=1),
+                sentence_probability,
+            )
+        else:
+            batch_size = messages.shape[0]
+
+            emb = (
+                torch.matmul(messages, self.embedding)
+                if self.training
+                else self.embedding[messages]
+            )
+
+            # initialize hidden
+            h = torch.zeros([batch_size, self.hidden_size], device=device)
+            if self.cell_type == "lstm":
+                c = torch.zeros([batch_size, self.hidden_size], device=device)
+                h = (h, c)
+
+            # make sequence_length be first dim
+            seq_iterator = emb.transpose(0, 1)
+            for w in seq_iterator:
+                h = self.rnn(w, h)
+
+            if self.cell_type == "lstm":
+                h = h[0]  # keep only hidden state
+
+            combined = torch.cat((h, image_representation), dim=1)
+            prediction = self.output_layer(combined)
+
+            return prediction, emb

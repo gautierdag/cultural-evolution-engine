@@ -59,7 +59,9 @@ class ObverterTrainer(nn.Module):
             first_image, device=self.device
         )
         messages = self._pad(messages, lengths)
-        prediction, h_r = self.receiver(messages, second_image, device=self.device)
+        prediction, h_r = self.receiver(
+            second_image, messages=messages, device=self.device
+        )
 
         loss = self.loss(prediction, label)
 

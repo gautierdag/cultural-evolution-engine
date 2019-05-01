@@ -64,6 +64,7 @@ class ShapesSender(nn.Module):
     ):
         super().__init__()
         self.vocab_size = vocab_size
+        self.cell_type = cell_type
         self.output_len = output_len
         self.sos_id = sos_id
 
@@ -326,6 +327,15 @@ class ShapesReceiver(nn.Module):
 
 
 class ShapesSingleModel(ShapesSender):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.output_module = ShapesMetaVisualModule(
+            hidden_size=kwargs["hidden_size"],
+            dataset_type=kwargs["dataset_type"],
+            sender=False,
+        )
+
     def forward(self, hidden_state=None, messages=None, device=None, tau=1.2):
         """
         Merged version of Sender and Receiver
@@ -437,6 +447,6 @@ class ShapesSingleModel(ShapesSender):
             if self.cell_type == "lstm":
                 h = h[0]  # keep only hidden state
 
-            out = self.input_module(h)
+            out = self.output_module(h)
 
             return out, emb

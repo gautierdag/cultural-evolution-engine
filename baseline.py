@@ -16,6 +16,7 @@ from model import (
     ObverterTrainer,
     generate_genotype,
     ShapesSingleModel,
+    ObverterSingleModel,
 )
 from utils import *
 from data import AgentVocab, get_shapes_dataloader, get_obverter_dataloader
@@ -205,21 +206,41 @@ def get_sender_receiver(args):
                 dataset_type=args.dataset_type,
             )
     elif args.task == "obverter":
-        sender = ObverterSender(
-            args.vocab_size,
-            args.max_length,
-            vocab.bound_idx,
-            embedding_size=args.embedding_size,
-            hidden_size=args.hidden_size,
-            greedy=args.greedy,
-            dataset_type=args.dataset_type,
-        )
-        receiver = ObverterReceiver(
-            args.vocab_size,
-            hidden_size=args.hidden_size,
-            embedding_size=args.embedding_size,
-            dataset_type=args.dataset_type,
-        )
+        if args.single_model:
+            sender = ObverterSingleModel(
+                args.vocab_size,
+                args.max_length,
+                vocab.bound_idx,
+                embedding_size=args.embedding_size,
+                hidden_size=args.hidden_size,
+                greedy=args.greedy,
+                dataset_type=args.dataset_type,
+            )
+            receiver = ObverterSingleModel(
+                args.vocab_size,
+                args.max_length,
+                vocab.bound_idx,
+                embedding_size=args.embedding_size,
+                hidden_size=args.hidden_size,
+                greedy=args.greedy,
+                dataset_type=args.dataset_type,
+            )
+        else:
+            sender = ObverterSender(
+                args.vocab_size,
+                args.max_length,
+                vocab.bound_idx,
+                embedding_size=args.embedding_size,
+                hidden_size=args.hidden_size,
+                greedy=args.greedy,
+                dataset_type=args.dataset_type,
+            )
+            receiver = ObverterReceiver(
+                args.vocab_size,
+                hidden_size=args.hidden_size,
+                embedding_size=args.embedding_size,
+                dataset_type=args.dataset_type,
+            )
     else:
         raise ValueError("Unsupported task type : {}".format(args.task))
     return sender, receiver
