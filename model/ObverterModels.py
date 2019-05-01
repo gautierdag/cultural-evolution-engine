@@ -155,7 +155,7 @@ class ObverterSender(nn.Module):
         mask *= seq_lengths == initial_length
         seq_lengths[mask.nonzero()] = seq_pos + 1  # start always token appended
 
-    def forward(self, image_representation, tau, device=None):
+    def forward(self, image_representation, tau=1.2, device=None):
         """
         Performs a forward pass. If training, use Gumbel Softmax (hard) for sampling, else use
         discrete sampling.

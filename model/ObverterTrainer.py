@@ -43,7 +43,7 @@ class ObverterTrainer(nn.Module):
 
         return messages
 
-    def forward(self, first_image, second_image, label, tau=1.2):
+    def forward(self, first_image, second_image, label):
         batch_size = first_image.shape[0]
 
         first_image = first_image.to(self.device)
@@ -56,7 +56,7 @@ class ObverterTrainer(nn.Module):
         label = label.to(self.device)
 
         messages, lengths, entropy, h_s, sentence_prob = self.sender(
-            first_image, tau, device=self.device
+            first_image, device=self.device
         )
         messages = self._pad(messages, lengths)
         prediction, h_r = self.receiver(messages, second_image, device=self.device)

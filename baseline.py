@@ -162,7 +162,7 @@ def get_sender_receiver(args):
             genotype = generate_genotype(num_nodes=args.num_nodes)
             print(genotype)
         if args.single_model:
-             sender = ShapesSingleModel(
+            sender = ShapesSingleModel(
                 args.vocab_size,
                 args.max_length,
                 vocab.bound_idx,
