@@ -164,7 +164,7 @@ class ShapesSender(nn.Module):
         mask *= seq_lengths == initial_length
         seq_lengths[mask.nonzero()] = seq_pos + 1  # start always token appended
 
-    def forward(self, tau, hidden_state=None, device=None):
+    def forward(self, tau=1.2, hidden_state=None, device=None):
         """
         Performs a forward pass. If training, use Gumbel Softmax (hard) for sampling, else use
         discrete sampling.
@@ -293,7 +293,7 @@ class ShapesReceiver(nn.Module):
                 self.rnn.bias_hh[self.hidden_size : 2 * self.hidden_size], val=1
             )
 
-    def forward(self, messages, device=None):
+    def forward(self, messages=None, device=None):
 
         if device is None:
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -323,3 +323,120 @@ class ShapesReceiver(nn.Module):
         out = self.input_module(h)
 
         return out, emb
+
+
+class ShapesSingleModel(ShapesSender):
+    def forward(self, hidden_state=None, messages=None, device=None, tau=1.2):
+        """
+        Merged version of Sender and Receiver
+        """
+        if device is None:
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        if messages is None:
+            hidden_state = self.input_module(hidden_state)
+            state, batch_size = self._init_state(hidden_state, type(self.rnn), device)
+
+            # Init output
+            if self.training:
+                output = [
+                    torch.zeros(
+                        (batch_size, self.vocab_size),
+                        dtype=torch.float32,
+                        device=device,
+                    )
+                ]
+                output[0][:, self.sos_id] = 1.0
+            else:
+                output = [
+                    torch.full(
+                        (batch_size,),
+                        fill_value=self.sos_id,
+                        dtype=torch.int64,
+                        device=device,
+                    )
+                ]
+
+            # Keep track of sequence lengths
+            initial_length = self.output_len + 1  # add the sos token
+            seq_lengths = (
+                torch.ones([batch_size], dtype=torch.int64, device=device)
+                * initial_length
+            )
+
+            embeds = []  # keep track of the embedded sequence
+            entropy = 0.0
+            sentence_probability = torch.zeros(
+                (batch_size, self.vocab_size), device=device
+            )
+
+            for i in range(self.output_len):
+                if self.training:
+                    emb = torch.matmul(output[-1], self.embedding)
+                else:
+                    emb = self.embedding[output[-1]]
+
+                embeds.append(emb)
+                state = self.rnn(emb, state)
+
+                if type(self.rnn) is nn.LSTMCell:
+                    h, c = state
+                else:
+                    h = state
+
+                p = F.softmax(self.linear_out(h), dim=1)
+                entropy += Categorical(p).entropy()
+
+                if self.training:
+                    token = gumbel_softmax(p, tau, hard=True)
+                else:
+                    sentence_probability += p.detach()
+                    if self.greedy:
+                        _, token = torch.max(p, -1)
+
+                    else:
+                        token = Categorical(p).sample()
+
+                    if batch_size == 1:
+                        token = token.unsqueeze(0)
+
+                output.append(token)
+
+                self._calculate_seq_len(
+                    seq_lengths, token, initial_length, seq_pos=i + 1
+                )
+
+            return (
+                torch.stack(output, dim=1),
+                seq_lengths,
+                torch.mean(entropy) / self.output_len,
+                torch.stack(embeds, dim=1),
+                sentence_probability,
+            )
+
+        else:
+            batch_size = messages.shape[0]
+
+            emb = (
+                torch.matmul(messages, self.embedding)
+                if self.training
+                else self.embedding[messages]
+            )
+
+            # initialize hidden
+            h = torch.zeros([batch_size, self.hidden_size], device=device)
+            if self.cell_type == "lstm":
+                c = torch.zeros([batch_size, self.hidden_size], device=device)
+                h = (h, c)
+
+            # make sequence_length be first dim
+            seq_iterator = emb.transpose(0, 1)
+            for w in seq_iterator:
+                h = self.rnn(w, h)
+
+            if self.cell_type == "lstm":
+                h = h[0]  # keep only hidden state
+
+            out = self.input_module(h)
+
+            return out, emb

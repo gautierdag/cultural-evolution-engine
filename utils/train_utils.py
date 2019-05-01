@@ -28,7 +28,7 @@ class AverageMeter:
         self.avg = self.sum / self.count
 
 
-def train_one_batch(model, batch, optimizer, tau=1.2):
+def train_one_batch(model, batch, optimizer):
     """
     Train for single batch
     """
@@ -36,17 +36,17 @@ def train_one_batch(model, batch, optimizer, tau=1.2):
     optimizer.zero_grad()
     if len(batch) == 2:  # shapes
         target, distractors = batch
-        loss, acc, _ = model(target, distractors, tau=tau)
+        loss, acc, _ = model(target, distractors)
     if len(batch) == 3:  # obverter task
         first_image, second_image, label = batch
-        loss, acc, _ = model(first_image, second_image, label, tau=tau)
+        loss, acc, _ = model(first_image, second_image, label)
     loss.backward()
     optimizer.step()
 
     return loss.item(), acc.item()
 
 
-def train_one_epoch(model, data, optimizer, tau=1.2):
+def train_one_epoch(model, data, optimizer):
     """
     Train for a whole epoch
     """
@@ -54,14 +54,14 @@ def train_one_epoch(model, data, optimizer, tau=1.2):
     acc_meter = AverageMeter()
 
     for d in tqdm(data, total=len(data)):
-        loss, acc = train_one_batch(model, d, optimizer, tau=tau)
+        loss, acc = train_one_batch(model, d, optimizer)
         loss_meter.update(loss)
         acc_meter.update(acc)
 
     return loss_meter, acc_meter
 
 
-def evaluate(model, data, tau=1.2, return_softmax=False):
+def evaluate(model, data, return_softmax=False):
     loss_meter = AverageMeter()
     acc_meter = AverageMeter()
     entropy_meter = AverageMeter()
@@ -72,14 +72,12 @@ def evaluate(model, data, tau=1.2, return_softmax=False):
     for d in data:
         if len(d) == 2:  # shapes
             target, distractors = d
-            loss, acc, msg, h_s, h_r, entropy, sent_p = model(
-                target, distractors, tau=tau
-            )
+            loss, acc, msg, h_s, h_r, entropy, sent_p = model(target, distractors)
 
         if len(d) == 3:  # obverter task
             first_image, second_image, label = d
             loss, acc, msg, h_s, h_r, entropy, sent_p = model(
-                first_image, second_image, label, tau=tau
+                first_image, second_image, label
             )
 
         loss_meter.update(loss.item())

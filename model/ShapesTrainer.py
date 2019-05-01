@@ -40,7 +40,7 @@ class ShapesTrainer(nn.Module):
 
         return messages
 
-    def forward(self, target, distractors, tau=1.2):
+    def forward(self, target, distractors):
         batch_size = target.shape[0]
 
         target = target.to(self.device)
@@ -51,10 +51,10 @@ class ShapesTrainer(nn.Module):
             distractors = [self.visual_module(d) for d in distractors]
 
         messages, lengths, entropy, h_s, sent_p = self.sender(
-            tau, hidden_state=target, device=self.device
+            hidden_state=target, device=self.device
         )
         messages = self._pad(messages, lengths)
-        r_transform, h_r = self.receiver(messages, device=self.device)
+        r_transform, h_r = self.receiver(messages=messages, device=self.device)
 
         loss = 0
 

@@ -15,6 +15,7 @@ from model import (
     ObverterSender,
     ObverterTrainer,
     generate_genotype,
+    ShapesSingleModel,
 )
 from utils import *
 from data import AgentVocab, get_shapes_dataloader, get_obverter_dataloader
@@ -34,6 +35,11 @@ def parse_arguments(args):
     parser.add_argument(
         "--debugging",
         help="Enable debugging mode (default: False)",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--single-model",
+        help="Use a single model (default: False)",
         action="store_true",
     )
     parser.add_argument(
@@ -155,26 +161,49 @@ def get_sender_receiver(args):
             cell_type = "darts"
             genotype = generate_genotype(num_nodes=args.num_nodes)
             print(genotype)
-
-        sender = ShapesSender(
-            args.vocab_size,
-            args.max_length,
-            vocab.bound_idx,
-            embedding_size=args.embedding_size,
-            hidden_size=args.hidden_size,
-            greedy=args.greedy,
-            cell_type=cell_type,
-            genotype=genotype,
-            dataset_type=args.dataset_type,
-        )
-        receiver = ShapesReceiver(
-            args.vocab_size,
-            embedding_size=args.embedding_size,
-            hidden_size=args.hidden_size,
-            cell_type=cell_type,
-            genotype=genotype,
-            dataset_type=args.dataset_type,
-        )
+        if args.single_model:
+             sender = ShapesSingleModel(
+                args.vocab_size,
+                args.max_length,
+                vocab.bound_idx,
+                embedding_size=args.embedding_size,
+                hidden_size=args.hidden_size,
+                greedy=args.greedy,
+                cell_type=cell_type,
+                genotype=genotype,
+                dataset_type=args.dataset_type,
+            )
+            receiver = ShapesSingleModel(
+                args.vocab_size,
+                args.max_length,
+                vocab.bound_idx,
+                embedding_size=args.embedding_size,
+                hidden_size=args.hidden_size,
+                greedy=args.greedy,
+                cell_type=cell_type,
+                genotype=genotype,
+                dataset_type=args.dataset_type,
+            )
+        else:
+            sender = ShapesSender(
+                args.vocab_size,
+                args.max_length,
+                vocab.bound_idx,
+                embedding_size=args.embedding_size,
+                hidden_size=args.hidden_size,
+                greedy=args.greedy,
+                cell_type=cell_type,
+                genotype=genotype,
+                dataset_type=args.dataset_type,
+            )
+            receiver = ShapesReceiver(
+                args.vocab_size,
+                embedding_size=args.embedding_size,
+                hidden_size=args.hidden_size,
+                cell_type=cell_type,
+                genotype=genotype,
+                dataset_type=args.dataset_type,
+            )
     elif args.task == "obverter":
         sender = ObverterSender(
             args.vocab_size,
