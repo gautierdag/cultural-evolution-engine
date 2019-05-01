@@ -206,6 +206,8 @@ def get_filename_from_cee_params(params):
         params.culling_interval,
         params.culling_rate,
     )
+    name += "_e{}".format(params.embedding_size)
+    name += "_h{}".format(params.hidden_size)
     if params.evolution:
         name = "evolution_" + name
     else:

@@ -75,30 +75,30 @@ def parse_arguments(args):
     parser.add_argument(
         "--embedding-size",
         type=int,
-        default=256,
+        default=64,
         metavar="N",
-        help="embedding size for embedding layer (default: 256)",
+        help="embedding size for embedding layer (default: 64)",
     )
     parser.add_argument(
         "--hidden-size",
         type=int,
-        default=512,
+        default=64,
         metavar="N",
-        help="hidden size for hidden layer (default: 512)",
+        help="hidden size for hidden layer (default: 64)",
     )
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=256,
+        default=1024,
         metavar="N",
         help="input batch size for training (default: 1024)",
     )
     parser.add_argument(
         "--max-length",
         type=int,
-        default=10,
+        default=5,
         metavar="N",
-        help="max sentence length allowed for communication (default: 10)",
+        help="max sentence length allowed for communication (default: 5)",
     )
     parser.add_argument(
         "--k",
@@ -110,9 +110,9 @@ def parse_arguments(args):
     parser.add_argument(
         "--vocab-size",
         type=int,
-        default=10,
+        default=5,
         metavar="N",
-        help="Size of vocabulary (default: 10)",
+        help="Size of vocabulary (default: 5)",
     )
     parser.add_argument(
         "--darts",
