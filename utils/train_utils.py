@@ -180,6 +180,8 @@ def get_filename_from_baseline_params(params):
     name = params.task
     name += "_{}".format(params.dataset_type)
     name += "_e_{}".format(params.embedding_size)
+    name += "_h_{}".format(params.hidden_size)
+    name += "_lr_{}".format(params.lr)
     name += "_max_len_{}".format(params.max_length)
     name += "_k_{}".format(params.k)
     name += "_vocab_{}".format(params.vocab_size)
