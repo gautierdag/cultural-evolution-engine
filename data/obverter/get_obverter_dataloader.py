@@ -16,7 +16,7 @@ from .ObverterDataset import ObverterDataset
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-TRAIN_DATASET_SIZE = 10000
+TRAIN_DATASET_SIZE = 20000
 VALID_DATASET_SIZE = 5000
 TEST_DATASET_SIZE = 5000
 
