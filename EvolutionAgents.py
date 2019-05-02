@@ -2,10 +2,10 @@ from cee import BaseAgent
 from model import (
     ShapesSender,
     ShapesReceiver,
-    ShapesSingleModel
+    ShapesSingleModel,
     ObverterSender,
     ObverterReceiver,
-    ObverterSingleModel
+    ObverterSingleModel,
     get_genotype_image,
 )
 from data import AgentVocab
