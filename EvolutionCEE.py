@@ -333,8 +333,8 @@ class EvolutionCEE(BaseCEE):
         c = 0
         if self.params.single_pool:
             for r in self.agents:
-            age += r.age
-            c += 1
+                age += r.age
+                c += 1
         else:
             for r in self.receivers:
                 age += r.age
