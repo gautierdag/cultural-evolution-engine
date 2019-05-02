@@ -179,6 +179,11 @@ def parse_arguments(args):
         metavar="N",
         help="Adam learning rate (default: 1e-3)",
     )
+    parser.add_argument(
+        "--single-pool",
+        help="Use a single pool for both receiver/sender (default: False)",
+        action="store_true",
+    )
 
     args = parser.parse_args(args)
 
@@ -374,22 +379,24 @@ def main(args):
                 if args.evolution:
                     evolution_cee.save_genotypes_to_writer(writer)
                     evolution_cee.mutate_population(culling_rate=args.culling_rate)
-                    evolution_cee.save_genotypes_to_writer(writer, receiver=True)
-                    evolution_cee.mutate_population(
-                        culling_rate=args.culling_rate, receiver=True
-                    )
+                    if not args.single_pool:
+                        evolution_cee.save_genotypes_to_writer(writer, receiver=True)
+                        evolution_cee.mutate_population(
+                            culling_rate=args.culling_rate, receiver=True
+                        )
 
                 else:
                     # Cull senders
                     evolution_cee.cull_population(
                         culling_rate=args.culling_rate, mode=args.culling_mode
                     )
-                    # Cull receivers
-                    evolution_cee.cull_population(
-                        receiver=True,
-                        culling_rate=args.culling_rate,
-                        mode=args.culling_mode,
-                    )
+                    if not args.single_pool:
+                        # Cull receivers
+                        evolution_cee.cull_population(
+                            receiver=True,
+                            culling_rate=args.culling_rate,
+                            mode=args.culling_mode,
+                        )
             i += 1
 
 

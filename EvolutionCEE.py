@@ -12,7 +12,7 @@ from cee.metrics import (
     jaccard_similarity,
 )
 
-from EvolutionAgents import SenderAgent, ReceiverAgent
+from EvolutionAgents import SenderAgent, ReceiverAgent, SingleAgent
 from model import ShapesTrainer, ObverterTrainer, generate_genotype, mutate_genotype
 from utils import create_folder_if_not_exists, train_one_batch, evaluate
 
@@ -35,12 +35,16 @@ class EvolutionCEE(BaseCEE):
             Args:
                 params (required): params obtained from argparse
         """
-        create_folder_if_not_exists(self.run_folder + "/senders")
-        create_folder_if_not_exists(self.run_folder + "/receivers")
-
-        if params.evolution:
-            create_folder_if_not_exists(self.run_folder + "/senders_genotype")
-            create_folder_if_not_exists(self.run_folder + "/receivers_genotype")
+        if params.single_pool:
+            create_folder_if_not_exists(self.run_folder + "/agents")
+            if params.evolution:
+                create_folder_if_not_exists(self.run_folder + "/agents_genotype")
+        else:
+            create_folder_if_not_exists(self.run_folder + "/senders")
+            create_folder_if_not_exists(self.run_folder + "/receivers")
+            if params.evolution:
+                create_folder_if_not_exists(self.run_folder + "/senders_genotype")
+                create_folder_if_not_exists(self.run_folder + "/receivers_genotype")
 
         for i in range(params.population_size):
             sender_genotype = None
@@ -49,21 +53,31 @@ class EvolutionCEE(BaseCEE):
                 sender_genotype = generate_genotype(num_nodes=params.init_nodes)
                 receiver_genotype = generate_genotype(num_nodes=params.init_nodes)
 
-            self.senders.append(
-                SenderAgent(
-                    self.run_folder, params, genotype=sender_genotype, agent_id=i
+            if params.single_pool:
+                self.agents.append(
+                    SingleAgent(
+                        self.run_folder, params, genotype=sender_genotype, agent_id=i
+                    )
                 )
-            )
-            self.receivers.append(
-                ReceiverAgent(
-                    self.run_folder, params, genotype=receiver_genotype, agent_id=i
+            else:
+                self.senders.append(
+                    SenderAgent(
+                        self.run_folder, params, genotype=sender_genotype, agent_id=i
+                    )
                 )
-            )
+                self.receivers.append(
+                    ReceiverAgent(
+                        self.run_folder, params, genotype=receiver_genotype, agent_id=i
+                    )
+                )
 
     def train_population(self, batch):
+        if self.params.single_pool:
+            sender, receiver = self.sample_agents_pair()
+        else:
+            sender = self.sample_population()
+            receiver = self.sample_population(receiver=True)
 
-        sender = self.sample_population()
-        receiver = self.sample_population(receiver=True)
         sender_model = sender.get_model()
         receiver_model = receiver.get_model()
 
@@ -97,7 +111,12 @@ class EvolutionCEE(BaseCEE):
                                         evaluating over the entire set is costly
                                         so this approximation speeds it up
         """
-        random.shuffle(self.senders)
+        if self.params.single_pool:
+            random.shuffle(self.agents)
+            sender_pop = self.agents[:max_senders]
+        else:
+            random.shuffle(self.senders)
+            sender_pop = self.senders[:max_senders]
 
         r = self.sample_population(receiver=True)
 
@@ -118,7 +137,7 @@ class EvolutionCEE(BaseCEE):
 
         messages = []
         sentence_probabilities = []
-        for s in self.senders[:max_senders]:
+        for s in sender_pop:
             loss, acc, entropy, msgs, sent_ps, H_s, H_r = self.evaluate_pair(
                 s, r, test_data
             )
@@ -232,7 +251,11 @@ class EvolutionCEE(BaseCEE):
         K_shot - how many initial batches/training steps
                 to take into account in the average loss
         """
-        att = "receivers" if receiver else "senders"
+        if self.params.single_pool:
+            att = "agents"
+        else:
+            att = "receivers" if receiver else "senders"
+
         pop_size = len(getattr(self, att))
 
         if dynamic:
@@ -273,7 +296,11 @@ class EvolutionCEE(BaseCEE):
         """
         self.generation += 1
 
-        att = "receivers" if receiver else "senders"
+        if self.params.single_pool:
+            att = "agents"
+        else:
+            att = "receivers" if receiver else "senders"
+
         pop_size = len(getattr(self, att))
 
         c = max(1, int(culling_rate * pop_size))
@@ -304,12 +331,17 @@ class EvolutionCEE(BaseCEE):
         """
         age = 0
         c = 0
-        for r in self.receivers:
+        if self.params.single_pool:
+            for r in self.agents:
             age += r.age
             c += 1
-        for s in self.senders:
-            age += s.age
-            c += 1
+        else:
+            for r in self.receivers:
+                age += r.age
+                c += 1
+            for s in self.senders:
+                age += s.age
+                c += 1
         return age / c
 
     def get_avg_convergence_at_step(self, step=10, dynamic=False):
@@ -325,7 +357,11 @@ class EvolutionCEE(BaseCEE):
         return mean(losses)
 
     def save_genotypes_to_writer(self, writer, receiver=False):
-        att = "receivers" if receiver else "senders"
+        if self.params.single_pool:
+            att = "agents"
+        else:
+            att = "receivers" if receiver else "senders"
+
         self.sort_agents(receiver=receiver)
         for a in getattr(self, att):
             m = {

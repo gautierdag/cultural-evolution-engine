@@ -1,10 +1,12 @@
 import random
+import numpy as np
 
 
 class BaseCEE(object):
     def __init__(self, params):
         self.senders = []
         self.receivers = []
+        self.agents = []  # case where single pool of agents
         self.params = params
         self.generation = 0
         self.iteration = 0
@@ -27,13 +29,33 @@ class BaseCEE(object):
         mode: pick from {'random'}
             - random: uniformly sample from population to cull ()
         """
-        pop_size = len(self.receivers) if receiver else len(self.senders)
+        if self.params.single_pool:
+            att = "agents"
+        else:
+            att = "receivers" if receiver else "senders"
+
+        pop_size = len(getattr(self, att))
+
         if mode == "random":
             r = random.randrange(0, pop_size)
         else:
             raise ValueError("mode={} undefined for sampling population".format(mode))
 
-        return self.receivers[r] if receiver else self.senders[r]
+        return getattr(self, att)[r]
+
+    def sample_agents_pair(self, mode: str = "random"):
+        """
+        samples two agents from agent pool with no replacement
+        mode: pick from {'random'}
+            - random: uniformly sample from population to cull ()
+        """
+        pop_size = len(self.agents)
+        if mode == "random":
+            rnd = np.random.choice(pop_size, 2, replace=False)
+            s1, s2 = rnd[0], rnd[1]
+        else:
+            raise ValueError("mode={} undefined for sampling population".format(mode))
+        return (self.agents[s1], self.agents[s2])
 
     def sort_agents(self, receiver=False):
         raise NotImplementedError("sort_agents not implemented")
@@ -47,7 +69,12 @@ class BaseCEE(object):
             mode (string, optional): argument for sampling
         """
         self.generation += 1
-        att = "receivers" if receiver else "senders"
+
+        if self.params.single_pool:
+            att = "agents"
+        else:
+            att = "receivers" if receiver else "senders"
+
         pop_size = len(getattr(self, att))
         c = max(1, int(culling_rate * pop_size))
 

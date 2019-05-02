@@ -204,14 +204,20 @@ def get_filename_from_cee_params(params):
         params.culling_interval,
         params.culling_rate,
     )
+    if params.single_pool:
+        name += "_single_pool_"
+
     name += "_e{}".format(params.embedding_size)
     name += "_h{}".format(params.hidden_size)
+    name += "_len{}".format(params.max_length)
+    name += "_voc{}".format(params.vocab_size)
     if params.evolution:
         name = "evolution_" + name
     else:
         name += "_cull_mode_{}".format(params.culling_mode)
     if params.debugging:
         name += "_debug"
+    
     return name
 
 
