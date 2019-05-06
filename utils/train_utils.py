@@ -213,11 +213,12 @@ def get_filename_from_cee_params(params):
     name += "_voc{}".format(params.vocab_size)
     if params.evolution:
         name = "evolution_" + name
+        name += "_evo_mode_{}".format(params.evolution_mode)
     else:
         name += "_cull_mode_{}".format(params.culling_mode)
     if params.debugging:
         name += "_debug"
-    
+
     return name
 
 
