@@ -149,7 +149,7 @@ def parse_arguments(args):
         type=str,
         default="random",
         metavar="S",
-        help="Mode in {'random', 'best', 'age'} to select which agent to reinitialize/cull (default: random)",
+        help="Mode in {'random', 'best', 'age', 'greedy'} to select which agent to reinitialize/cull (default: random)",
     )
     # Biological evolution
     parser.add_argument(
@@ -157,6 +157,13 @@ def parse_arguments(args):
         help="Use evolution instead of random re-init (default: True)",
         action="store_true",
         default=False,
+    )
+    parser.add_argument(
+        "--evolution-mode",
+        type=str,
+        default="best",
+        metavar="S",
+        help="Mode in {'best', 'greedy'} to select which agent to mutate (default: best)",
     )
     parser.add_argument(
         "--init-nodes",
@@ -378,11 +385,15 @@ def main(args):
             if i % args.culling_interval == 0 and i > 0:
                 if args.evolution:
                     evolution_cee.save_genotypes_to_writer(writer)
-                    evolution_cee.mutate_population(culling_rate=args.culling_rate)
+                    evolution_cee.mutate_population(
+                        culling_rate=args.culling_rate, mode=args.evolution_mode
+                    )
                     if not args.single_pool:
                         evolution_cee.save_genotypes_to_writer(writer, receiver=True)
                         evolution_cee.mutate_population(
-                            culling_rate=args.culling_rate, receiver=True
+                            culling_rate=args.culling_rate,
+                            receiver=True,
+                            mode=args.evolution_mode,
                         )
 
                 else:

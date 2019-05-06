@@ -1,7 +1,10 @@
 import torch
 import random
 import pickle
+import copy
 from statistics import mean
+import numpy as np
+import scipy
 
 from cee import BaseCEE
 from cee.metrics import (
@@ -244,18 +247,7 @@ class EvolutionCEE(BaseCEE):
             l_entropy,
         )
 
-    def sort_agents(self, receiver=False, dynamic=True, k_shot=100):
-        """
-        dynamic - whether k_shot is based on minimum batch size
-                  or on passed k_shot value
-        K_shot - how many initial batches/training steps
-                to take into account in the average loss
-        """
-        if self.params.single_pool:
-            att = "agents"
-        else:
-            att = "receivers" if receiver else "senders"
-
+    def get_convergence(self, att, dynamic=True, k_shot=100):
         pop_size = len(getattr(self, att))
 
         if dynamic:
@@ -283,6 +275,23 @@ class EvolutionCEE(BaseCEE):
             agents.append(a)
             values.append(avg_loss)
 
+        return values, agents
+
+    def sort_agents(self, receiver=False, dynamic=True, k_shot=100):
+        """
+        Sorts agents according to convergence (see get_convergence)
+        dynamic - whether k_shot is based on minimum batch size
+                  or on passed k_shot value
+        K_shot - how many initial batches/training steps
+                to take into account in the average loss
+        """
+        if self.params.single_pool:
+            att = "agents"
+        else:
+            att = "receivers" if receiver else "senders"
+
+        values, agents = self.get_convergence(att, dynamic=dynamic, k_shot=k_shot)
+
         values, agents = zip(*sorted(zip(values, agents)))
         return list(agents), list(values)
 
@@ -292,7 +301,7 @@ class EvolutionCEE(BaseCEE):
         Args:
             culling_rate (float, optional): percentage of the population to replace
                                             default: 0.2
-            mode (string, optional): argument for sampling
+            mode (string, optional): argument for sampling {best, greedy}
         """
         self.generation += 1
 
@@ -306,12 +315,6 @@ class EvolutionCEE(BaseCEE):
         c = max(1, int(culling_rate * pop_size))
 
         print("Mutating {} agents from {} Population".format(c, att))
-        # picks random networks to mutate
-        if mode == "random":
-            for _ in range(c):
-                sampled_agent = self.sample_population(receiver=receiver, mode=mode)
-                new_genotype = mutate_genotype(sampled_agent.genotype)
-                sampled_agent.mutate(new_genotype)
 
         # mutates best agent to make child and place this child instead of worst agent
         if mode == "best":
@@ -323,6 +326,18 @@ class EvolutionCEE(BaseCEE):
             for w in agents[:c]:
                 worst_agent = getattr(self, att)[w]
                 new_genotype = mutate_genotype(best_agent.genotype)
+                worst_agent.mutate(new_genotype)
+
+        if mode == "greedy":
+            agents, values = self.sort_agents(receiver=receiver)
+            best_geno = copy.deepcopy(getattr(self, att)[agents[0]].genotype)
+
+            # replace sampled worst c models with mutated version of best
+            p = scipy.special.softmax(np.array(values))
+            selected_agents = np.random.choice(agents, c, p=p, replace=False)
+            for w in selected_agents:
+                worst_agent = getattr(self, att)[w]
+                new_genotype = mutate_genotype(best_geno)
                 worst_agent.mutate(new_genotype)
 
     def get_avg_age(self):

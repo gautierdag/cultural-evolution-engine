@@ -1,5 +1,6 @@
 import random
 import numpy as np
+import scipy
 
 
 class BaseCEE(object):
@@ -89,6 +90,14 @@ class BaseCEE(object):
             # cull worst c models
             agents.reverse()  # resort from worst to best
             for w in agents[:c]:
+                worst_agent = getattr(self, att)[w]
+                worst_agent.cull()
+
+        if mode == "greedy":
+            agents, values = self.sort_agents(receiver=receiver)
+            p = scipy.special.softmax(np.array(values))
+            selected_agents = np.random.choice(agents, c, p=p, replace=False)
+            for w in selected_agents:
                 worst_agent = getattr(self, att)[w]
                 worst_agent.cull()
 
