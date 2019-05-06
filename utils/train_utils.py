@@ -186,6 +186,8 @@ def get_filename_from_baseline_params(params):
     name += "_vocab_{}".format(params.vocab_size)
     name += "_seed_{}".format(params.seed)
     name += "_btch_size_{}".format(params.batch_size)
+    if params.single_model:
+        name += "_single_model"
     if params.greedy:
         name += "_greedy"
     if params.debugging:
