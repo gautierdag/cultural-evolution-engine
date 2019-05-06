@@ -17,6 +17,7 @@ from model import (
     generate_genotype,
     ShapesSingleModel,
     ObverterSingleModel,
+    ObverterMetaVisualModule,
 )
 from utils import *
 from data import AgentVocab, get_shapes_dataloader, get_obverter_dataloader
@@ -55,7 +56,7 @@ def parse_arguments(args):
         type=str,
         default="features",
         metavar="S",
-        help="type of input used by dataset pick from raw/features/meta (default meta)",
+        help="type of input used by dataset pick from raw/features/meta (default features)",
     )
     parser.add_argument(
         "--greedy",
@@ -140,6 +141,20 @@ def parse_arguments(args):
         default=1e-3,
         metavar="N",
         help="Adam learning rate (default: 1e-3)",
+    )
+    parser.add_argument(
+        "--sender-path",
+        type=str,
+        default=False,
+        metavar="S",
+        help="Sender to be loaded",
+    )
+    parser.add_argument(
+        "--receiver-path",
+        type=str,
+        default=False,
+        metavar="S",
+        help="Receiver to be loaded",
     )
 
     args = parser.parse_args(args)
@@ -243,6 +258,22 @@ def get_sender_receiver(args):
             )
     else:
         raise ValueError("Unsupported task type : {}".format(args.task))
+
+    if args.sender_path:
+        sender = torch.load(args.sender_path)
+    if args.receiver_path:
+        receiver = torch.load(args.receiver_path)
+
+    if args.task == "obverter":
+        s_visual_module = ObverterMetaVisualModule(
+            hidden_size=sender.hidden_size, dataset_type=args.dataset_type
+        )
+        r_visual_module = ObverterMetaVisualModule(
+            hidden_size=receiver.hidden_size, dataset_type=args.dataset_type
+        )
+        sender.input_module = s_visual_module
+        receiver.input_module = r_visual_module
+
     return sender, receiver
 
 

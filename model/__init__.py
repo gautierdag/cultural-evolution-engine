@@ -1,5 +1,10 @@
 from .ShapesTrainer import ShapesTrainer
 from .ShapesModels import ShapesSender, ShapesReceiver, ShapesSingleModel
-from .ObverterModels import ObverterSender, ObverterReceiver, ObverterSingleModel
+from .ObverterModels import (
+    ObverterSender,
+    ObverterReceiver,
+    ObverterSingleModel,
+    ObverterMetaVisualModule,
+)
 from .ObverterTrainer import ObverterTrainer
 from .evolution import generate_genotype, mutate_genotype, get_genotype_image, DARTS
