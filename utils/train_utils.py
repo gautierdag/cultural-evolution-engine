@@ -190,7 +190,7 @@ def get_filename_from_baseline_params(params):
         name += "_greedy"
     if params.debugging:
         name += "_debug"
-    if params.sender_path or param.receiver_path:
+    if params.sender_path or params.receiver_path:
         name += "_loaded_from_path"
     return name
 
