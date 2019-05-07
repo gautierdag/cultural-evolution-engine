@@ -76,16 +76,16 @@ def parse_arguments(args):
     parser.add_argument(
         "--embedding-size",
         type=int,
-        default=64,
+        default=256,
         metavar="N",
-        help="embedding size for embedding layer (default: 64)",
+        help="embedding size for embedding layer (default: 256)",
     )
     parser.add_argument(
         "--hidden-size",
         type=int,
-        default=64,
+        default=512,
         metavar="N",
-        help="hidden size for hidden layer (default: 64)",
+        help="hidden size for hidden layer (default: 512)",
     )
     parser.add_argument(
         "--cell-type",
