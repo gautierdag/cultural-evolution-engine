@@ -270,7 +270,7 @@ def get_sender_receiver(args):
     if args.receiver_path:
         receiver = torch.load(args.receiver_path)
 
-    if args.task = "shapes":
+    if args.task == "shapes":
         meta_vocab_size = 15
     else:
         meta_vocab_size = 13
