@@ -163,7 +163,7 @@ def parse_arguments(args):
     )
 
     args = parser.parse_args(args)
-    args.obverter_setup = True
+
     if args.debugging:
         args.iterations = 1000
         args.max_length = 5
