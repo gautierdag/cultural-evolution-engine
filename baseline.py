@@ -16,6 +16,7 @@ from model import (
     ObverterTrainer,
     generate_genotype,
     ShapesSingleModel,
+    ShapesMetaVisualModule,
     ObverterSingleModel,
     ObverterMetaVisualModule,
 )
@@ -269,12 +270,27 @@ def get_sender_receiver(args):
     if args.receiver_path:
         receiver = torch.load(args.receiver_path)
 
-    if args.task == "obverter":
+    if args.task = "shapes":
+        meta_vocab_size = 15
+    else:
+        meta_vocab_size = 13
+
+    if args.task == "obverter" or (args.obverter_setup and args.task == "shapes"):
         s_visual_module = ObverterMetaVisualModule(
-            hidden_size=sender.hidden_size, dataset_type=args.dataset_type
+            hidden_size=sender.hidden_size, dataset_type=args.dataset_type, meta_vocab_size=meta_vocab_size
         )
         r_visual_module = ObverterMetaVisualModule(
-            hidden_size=receiver.hidden_size, dataset_type=args.dataset_type
+            hidden_size=receiver.hidden_size, dataset_type=args.dataset_type, meta_vocab_size=meta_vocab_size
+        )
+        sender.input_module = s_visual_module
+        receiver.input_module = r_visual_module
+    
+    if args.task == "shapes" and not args.obverter_setup:
+        s_visual_module = ShapesMetaVisualModule(
+            hidden_size=sender.hidden_size, dataset_type=args.dataset_type
+        )
+        r_visual_module = ShapesMetaVisualModule(
+            hidden_size=receiver.hidden_size, dataset_type=args.dataset_type, sender=False
         )
         sender.input_module = s_visual_module
         receiver.input_module = r_visual_module

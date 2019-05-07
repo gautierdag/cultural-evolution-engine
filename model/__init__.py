@@ -1,5 +1,10 @@
 from .ShapesTrainer import ShapesTrainer
-from .ShapesModels import ShapesSender, ShapesReceiver, ShapesSingleModel
+from .ShapesModels import (
+    ShapesSender,
+    ShapesReceiver,
+    ShapesSingleModel,
+    ShapesMetaVisualModule,
+)
 from .ObverterModels import (
     ObverterSender,
     ObverterReceiver,
