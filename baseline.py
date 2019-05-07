@@ -156,9 +156,14 @@ def parse_arguments(args):
         metavar="S",
         help="Receiver to be loaded",
     )
+    parser.add_argument(
+        "--obverter-setup",
+        help="Enable obverter setup with shapes",
+        action="store_true",
+    )
 
     args = parser.parse_args(args)
-
+    args.obverter_setup = True
     if args.debugging:
         args.iterations = 1000
         args.max_length = 5
@@ -170,7 +175,7 @@ def get_sender_receiver(args):
     # Load Vocab
     vocab = AgentVocab(args.vocab_size)
 
-    if args.task == "shapes":
+    if args.task == "shapes" and not args.obverter_setup:
         cell_type = "lstm"
         genotype = {}
         if args.darts:
@@ -220,7 +225,7 @@ def get_sender_receiver(args):
                 genotype=genotype,
                 dataset_type=args.dataset_type,
             )
-    elif args.task == "obverter":
+    elif args.task == "obverter" or (args.obverter_setup and args.task == "shapes"):
         if args.single_model:
             sender = ObverterSingleModel(
                 args.vocab_size,
@@ -279,9 +284,9 @@ def get_sender_receiver(args):
 
 def get_trainer(sender, receiver, args):
     extract_features = args.dataset_type == "raw"
-    if args.task == "shapes":
+    if args.task == "shapes" and not args.obverter_setup:
         return ShapesTrainer(sender, receiver, extract_features=extract_features)
-    if args.task == "obverter":
+    if args.task == "obverter" or (args.obverter_setup and args.task == "shapes"):
         return ObverterTrainer(sender, receiver, extract_features=extract_features)
 
 
@@ -301,6 +306,7 @@ def baseline(args):
             k=args.k,
             debug=args.debugging,
             dataset_type=args.dataset_type,
+            obverter_setup=args.obverter_setup,
         )
         valid_meta_data = get_shapes_metadata(dataset="valid")
         valid_features = get_shapes_features(dataset="valid")
@@ -310,6 +316,7 @@ def baseline(args):
             debug=args.debugging,
             dataset="train",
             dataset_type=args.dataset_type,
+            obverter_setup=args.obverter_setup,
         )
 
     elif args.task == "obverter":

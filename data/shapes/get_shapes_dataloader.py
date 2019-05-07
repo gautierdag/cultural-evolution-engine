@@ -7,6 +7,7 @@ from .ShapesDataset import ShapesDataset, ImagesSampler
 from .generate_shapes import generate_shapes_dataset
 from .get_shapes_metadata import get_shapes_metadata
 from ..feature_extractor import get_features
+from .get_obverter_setup import get_obverter_setup
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -29,7 +30,12 @@ def get_shapes_features(dataset="test"):
 
 
 def get_dataloaders(
-    batch_size=16, k=3, debug=False, dataset="all", dataset_type="features"
+    batch_size=16,
+    k=3,
+    debug=False,
+    dataset="all",
+    dataset_type="features",
+    obverter_setup=False,
 ):
     """
     Returns dataloader for the train/valid/test datasets
@@ -43,19 +49,34 @@ def get_dataloaders(
         dataset_type (str, optional): what datatype encoding to use: {"meta", "features", "raw"}
                                       default: "features"
     """
+    if obverter_setup:
+        obv_train = get_obverter_setup(dataset="train")
+        obv_test = get_obverter_setup(dataset="test")
+        obv_valid = get_obverter_setup(dataset="valid")
+    else:
+        obv_train, obv_test, obv_valid = None, None, None
+
     if dataset_type == "raw":
         train_features = np.load(dir_path + "/balanced/train.input.npy")
         valid_features = np.load(dir_path + "/balanced/valid.input.npy")
         test_features = np.load(dir_path + "/balanced/test.input.npy")
 
-        train_dataset = ShapesDataset(train_features, raw=True)
+        train_dataset = ShapesDataset(train_features, raw=True, dataset=obv_train)
 
         # All features are normalized with train mean and std
         valid_dataset = ShapesDataset(
-            valid_features, mean=train_dataset.mean, std=train_dataset.std, raw=True
+            valid_features,
+            mean=train_dataset.mean,
+            std=train_dataset.std,
+            raw=True,
+            dataset=obv_valid,
         )
         test_dataset = ShapesDataset(
-            test_features, mean=train_dataset.mean, std=train_dataset.std, raw=True
+            test_features,
+            mean=train_dataset.mean,
+            std=train_dataset.std,
+            raw=True,
+            dataset=obv_test,
         )
 
     if dataset_type == "features":
@@ -67,14 +88,20 @@ def get_dataloaders(
         if debug:
             train_features = train_features[:10000]
 
-        train_dataset = ShapesDataset(train_features)
+        train_dataset = ShapesDataset(train_features, dataset=obv_train)
 
         # All features are normalized with train mean and std
         valid_dataset = ShapesDataset(
-            valid_features, mean=train_dataset.mean, std=train_dataset.std
+            valid_features,
+            mean=train_dataset.mean,
+            std=train_dataset.std,
+            dataset=obv_valid,
         )
         test_dataset = ShapesDataset(
-            test_features, mean=train_dataset.mean, std=train_dataset.std
+            test_features,
+            mean=train_dataset.mean,
+            std=train_dataset.std,
+            dataset=obv_test,
         )
 
     if dataset_type == "meta":
@@ -82,39 +109,71 @@ def get_dataloaders(
         valid_meta = get_shapes_metadata(dataset="valid")
         test_meta = get_shapes_metadata(dataset="test")
 
-        train_dataset = ShapesDataset(train_meta.astype(np.float32), metadata=True)
-        valid_dataset = ShapesDataset(valid_meta.astype(np.float32), metadata=True)
-        test_dataset = ShapesDataset(test_meta.astype(np.float32), metadata=True)
+        train_dataset = ShapesDataset(
+            train_meta.astype(np.float32), metadata=True, dataset=obv_train
+        )
+        valid_dataset = ShapesDataset(
+            valid_meta.astype(np.float32), metadata=True, dataset=obv_valid
+        )
+        test_dataset = ShapesDataset(
+            test_meta.astype(np.float32), metadata=True, dataset=obv_test
+        )
 
-    train_data = DataLoader(
-        train_dataset,
-        pin_memory=True,
-        batch_sampler=BatchSampler(
-            ImagesSampler(train_dataset, k, shuffle=True),
+    if obverter_setup:
+        train_data = DataLoader(
+            train_dataset,
+            pin_memory=True,
             batch_size=batch_size,
+            shuffle=True,
             drop_last=True,
-        ),
-    )
+        )
 
-    valid_data = DataLoader(
-        valid_dataset,
-        pin_memory=True,
-        batch_sampler=BatchSampler(
-            ImagesSampler(valid_dataset, k, shuffle=False),
+        valid_data = DataLoader(
+            valid_dataset,
+            pin_memory=True,
             batch_size=batch_size,
+            shuffle=False,
             drop_last=True,
-        ),
-    )
+        )
 
-    test_data = DataLoader(
-        test_dataset,
-        pin_memory=True,
-        batch_sampler=BatchSampler(
-            ImagesSampler(test_dataset, k, shuffle=False),
+        test_data = DataLoader(
+            test_dataset,
+            pin_memory=True,
             batch_size=batch_size,
+            shuffle=False,
             drop_last=True,
-        ),
-    )
+        )
+
+    else:
+        train_data = DataLoader(
+            train_dataset,
+            pin_memory=True,
+            batch_sampler=BatchSampler(
+                ImagesSampler(train_dataset, k, shuffle=True),
+                batch_size=batch_size,
+                drop_last=True,
+            ),
+        )
+
+        valid_data = DataLoader(
+            valid_dataset,
+            pin_memory=True,
+            batch_sampler=BatchSampler(
+                ImagesSampler(valid_dataset, k, shuffle=False),
+                batch_size=batch_size,
+                drop_last=True,
+            ),
+        )
+
+        test_data = DataLoader(
+            test_dataset,
+            pin_memory=True,
+            batch_sampler=BatchSampler(
+                ImagesSampler(test_dataset, k, shuffle=False),
+                batch_size=batch_size,
+                drop_last=True,
+            ),
+        )
     if dataset == "train":
         return train_data
     if dataset == "valid":
@@ -126,7 +185,12 @@ def get_dataloaders(
 
 
 def get_shapes_dataloader(
-    batch_size=16, k=3, debug=False, dataset="all", dataset_type="features"
+    batch_size=16,
+    k=3,
+    debug=False,
+    dataset="all",
+    dataset_type="features",
+    obverter_setup=False,
 ):
     """
     Args:
@@ -147,5 +211,6 @@ def get_shapes_dataloader(
         debug=debug,
         dataset=dataset,
         dataset_type=dataset_type,
+        obverter_setup=obverter_setup,
     )
 

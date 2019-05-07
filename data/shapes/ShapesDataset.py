@@ -7,10 +7,17 @@ from PIL import Image
 
 
 class ShapesDataset:
-    def __init__(self, features, mean=None, std=None, metadata=False, raw=False):
+    def __init__(
+        self, features, mean=None, std=None, metadata=False, raw=False, dataset=None
+    ):
         self.metadata = metadata
         self.raw = raw
         self.features = features
+
+        self.obverter_setup = False
+        self.dataset = dataset
+        if dataset is not None:
+            self.obverter_setup = True
 
         if mean is None:
             mean = np.mean(features, axis=0)
@@ -31,24 +38,37 @@ class ShapesDataset:
         )
 
     def __getitem__(self, indices):
-        target_idx = indices[0]
-        distractors_idxs = indices[1:]
 
-        distractors = []
-        for d_idx in distractors_idxs:
-            distractor_img = self.features[d_idx]
+        if self.obverter_setup:
+            first_image = self.features[self.dataset[indices][0]]
+            second_image = self.features[self.dataset[indices][1]]
             if self.raw:
-                distractor_img = self.transforms(distractor_img)
-            distractors.append(distractor_img)
+                first_image = self.transforms(first_image)
+                second_image = self.transforms(second_image)
+            target = self.dataset[indices][2]  # label
+            return (first_image, second_image, target)
+        else:
+            target_idx = indices[0]
+            distractors_idxs = indices[1:]
 
-        target_img = self.features[target_idx]
-        if self.raw:
-            target_img = self.transforms(target_img)
+            distractors = []
+            for d_idx in distractors_idxs:
+                distractor_img = self.features[d_idx]
+                if self.raw:
+                    distractor_img = self.transforms(distractor_img)
+                distractors.append(distractor_img)
 
-        return (target_img, distractors)
+            target_img = self.features[target_idx]
+            if self.raw:
+                target_img = self.transforms(target_img)
+
+            return (target_img, distractors)
 
     def __len__(self):
-        return self.features.shape[0]
+        if self.obverter_setup:
+            return self.dataset.shape[0]
+        else:
+            return self.features.shape[0]
 
 
 class ImagesSampler(Sampler):

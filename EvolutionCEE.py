@@ -85,7 +85,7 @@ class EvolutionCEE(BaseCEE):
         receiver_model = receiver.get_model()
 
         model = self.get_trainer(sender_model, receiver_model)
-        optimizer = torch.optim.Adam(model.parameters(), lr=self.params.lr)
+        optimizer = torch.optim.SGD(model.parameters(), lr=self.params.lr)
 
         loss, acc = train_one_batch(model, batch, optimizer)
         sender.update_loss_acc(loss, acc)
