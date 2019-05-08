@@ -196,6 +196,8 @@ def get_filename_from_baseline_params(params):
         name += "_loaded_from_path"
     if params.obverter_setup:
         name = "obverter_setup_with_" + name
+    if params.name:
+        name += params.name
     return name
 
 
