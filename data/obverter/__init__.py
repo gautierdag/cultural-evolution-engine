@@ -1,2 +1,2 @@
-from .get_obverter_dataloader import get_obverter_dataloader
+from .get_obverter_dataloader import get_obverter_dataloader, get_obverter_features
 from .get_obverter_metadata import get_obverter_metadata

@@ -2,7 +2,7 @@ import torch
 
 from data import AgentVocab, get_shapes_dataloader, get_obverter_dataloader
 from data.shapes import get_shapes_metadata, get_shapes_features
-from data.obverter import get_obverter_metadata
+from data.obverter import get_obverter_metadata, get_obverter_features
 
 
 from model import (
@@ -193,7 +193,7 @@ def get_training_data(args):
         valid_meta_data = get_obverter_metadata(
             dataset="valid", first_picture_only=True
         )
-        valid_features = None
+        valid_features = get_obverter_features(dataset="valid")
         # eval train data is separate train dataloader to calculate
         # loss/acc on full set and get generalization error
         eval_train_data = get_obverter_dataloader(

@@ -200,22 +200,12 @@ def baseline(args):
     model.to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-
-    # early stopping with patience set to approx 10 epochs
-    early_stopping = EarlyStopping(mode="max", patience=int((5000 / args.log_interval)))
+    best_valid_acc = -1
 
     # Train
     i = 0
     while i < args.iterations:
-
-        if early_stopping.is_converged:
-            print("Converged in iterations {}".format(i))
-            break
-
         for train_batch in train_data:
-
-            if early_stopping.is_converged:
-                continue
 
             loss, acc = train_one_batch(model, train_batch, optimizer)
 
@@ -259,8 +249,8 @@ def baseline(args):
                     writer.add_scalar("pseudo_tre", pseudo_tre, i)
                     writer.add_scalar("language_entropy", l_entropy, i)
 
-                early_stopping.step(valid_acc_meter.avg)
-                if early_stopping.num_bad_epochs == 0:
+                if valid_acc_meter.avg > best_valid_acc:
+                    best_valid_acc = valid_acc_meter.avg
                     torch.save(model.state_dict(), "{}/best_model".format(run_folder))
 
                 # Skip for now

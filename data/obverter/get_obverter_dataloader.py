@@ -36,6 +36,26 @@ colors = {
 object_types = ["box", "sphere", "cylinder", "torus", "ellipsoid"]
 
 
+def get_obverter_features(dataset="valid"):
+    """
+    Returns numpy array with matching features
+    Args:
+        dataset (str) in {'train', 'valid', 'test'}
+    """
+    dataset_path = "{}/{}_dataset.npy".format(dir_path, dataset)
+    features_path = "{}/{}_features.npy".format(dir_path, N_DATA_SAMPLES)
+
+    if not os.path.isfile(features_path):
+        images_dict = load_images_dict()
+        features = get_features("obverter", images_dict["images"])
+        np.save(features_path, features)
+
+    features = np.load(features_path)
+    dataset = np.load(dataset_path)
+
+    return features[dataset[0]]
+
+
 def load_images_dict():
     asset_dir = dir_path + "/assets"
     cache_filename = asset_dir + "/{}_cache.pkl".format(N_DATA_SAMPLES)

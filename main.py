@@ -8,13 +8,7 @@ import warnings
 
 from tensorboardX import SummaryWriter
 from utils import *
-from data import (
-    get_shapes_dataloader,
-    get_shapes_metadata,
-    get_shapes_features,
-    get_obverter_dataloader,
-    get_obverter_metadata,
-)
+from baseline_helper import get_training_data
 
 from EvolutionCEE import EvolutionCEE
 
@@ -191,6 +185,11 @@ def parse_arguments(args):
         help="Use a single pool for both receiver/sender (default: False)",
         action="store_true",
     )
+    parser.add_argument(
+        "--obverter-setup",
+        help="Enable obverter setup with shapes",
+        action="store_true",
+    )
 
     args = parser.parse_args(args)
 
@@ -232,48 +231,10 @@ def main(args):
     # Tensorboard tracker for evolution process
     writer = SummaryWriter(log_dir=experiment_folder)
 
-    # Load data
-    train_data, valid_data, test_data = get_shapes_dataloader(
-        batch_size=args.batch_size, k=args.k, debug=args.debugging
-    )
-
     # Load Data
-    if args.task == "obverter":
-        train_data, valid_data, test_data = get_obverter_dataloader(
-            dataset_type=args.dataset_type,
-            debug=args.debugging,
-            batch_size=args.batch_size,
-        )
-
-        valid_meta_data = get_obverter_metadata(
-            dataset="valid", first_picture_only=True
-        )
-        valid_features = None
-        # eval train data is separate train dataloader to calculate
-        # loss/acc on full set and get generalization error
-        eval_train_data = get_obverter_dataloader(
-            batch_size=args.batch_size,
-            debug=args.debugging,
-            dataset="train",
-            dataset_type=args.dataset_type,
-        )
-
-    if args.task == "shapes":
-        train_data, valid_data, test_data = get_shapes_dataloader(
-            batch_size=args.batch_size,
-            k=args.k,
-            debug=args.debugging,
-            dataset_type=args.dataset_type,
-        )
-        valid_meta_data = get_shapes_metadata(dataset="valid")
-        valid_features = get_shapes_features(dataset="valid")
-        eval_train_data = get_shapes_dataloader(
-            batch_size=args.batch_size,
-            k=args.k,
-            debug=args.debugging,
-            dataset="train",
-            dataset_type=args.dataset_type,
-        )
+    train_data, valid_data, test_data, valid_meta_data, valid_features, eval_train_data = get_training_data(
+        args
+    )
 
     # Generate population and save intial models
     if args.resume:
