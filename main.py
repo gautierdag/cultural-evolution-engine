@@ -232,7 +232,7 @@ def main(args):
     writer = SummaryWriter(log_dir=experiment_folder)
 
     # Load Data
-    train_data, valid_data, test_data, valid_meta_data, valid_features, eval_train_data = get_training_data(
+    train_data, valid_data, test_data, valid_meta_data, valid_features, _ = get_training_data(
         args
     )
 
@@ -256,20 +256,10 @@ def main(args):
                 metrics = evolution_cee.evaluate_population(
                     valid_data, valid_meta_data, valid_features, advanced=True
                 )
-                # evaluate on full train set (using separate dataloader)
-                train_metrics = evolution_cee.evaluate_population(
-                    eval_train_data, [], [], advanced=False
-                )
 
                 writer.add_scalar("avg_acc", metrics["acc"], i)
                 writer.add_scalar("avg_loss", metrics["loss"], i)
                 writer.add_scalar("avg_entropy", metrics["entropy"], i)
-                writer.add_scalar("train_avg_acc", train_metrics["acc"], i)
-                writer.add_scalar("train_avg_loss", train_metrics["loss"], i)
-                writer.add_scalar("train_avg_entropy", train_metrics["entropy"], i)
-                writer.add_scalar(
-                    "generalization_error", train_metrics["acc"] - metrics["acc"], i
-                )
                 writer.add_scalar(
                     "jaccard_similarity", metrics["jaccard_similarity"], i
                 )
@@ -337,10 +327,6 @@ def main(args):
                 pickle.dump(
                     metrics,
                     open("{}/metrics_at_{}.p".format(experiment_folder, i), "wb"),
-                )
-                pickle.dump(
-                    train_metrics,
-                    open("{}/train_metrics_at_{}.p".format(experiment_folder, i), "wb"),
                 )
 
             if i % args.culling_interval == 0 and i > 0:
