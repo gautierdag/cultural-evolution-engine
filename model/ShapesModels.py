@@ -35,6 +35,10 @@ class ShapesMetaVisualModule(nn.Module):
             self.process_input = nn.Linear(
                 *(meta_dim, hidden_size) if sender else (hidden_size, meta_dim)
             )
+    
+    def reset_parameters(self):
+        if self.process:
+            self.process_input.reset_parameters()
 
     def forward(self, input):
         batch_size = input.shape[0]
@@ -104,6 +108,8 @@ class ShapesSender(nn.Module):
 
         nn.init.constant_(self.linear_out.weight, 0)
         nn.init.constant_(self.linear_out.bias, 0)
+
+        self.input_module.reset_parameters()
 
         if type(self.rnn) is nn.LSTMCell:
             nn.init.xavier_uniform_(self.rnn.weight_ih)
@@ -285,6 +291,7 @@ class ShapesReceiver(nn.Module):
 
     def reset_parameters(self):
         nn.init.normal_(self.embedding, 0.0, 0.1)
+        self.input_module.reset_parameters()
         if type(self.rnn) is nn.LSTMCell:
             nn.init.xavier_uniform_(self.rnn.weight_ih)
             nn.init.orthogonal_(self.rnn.weight_hh)
@@ -335,6 +342,26 @@ class ShapesSingleModel(ShapesSender):
             dataset_type=kwargs["dataset_type"],
             sender=False,
         )
+
+    def reset_parameters(self):
+        nn.init.normal_(self.embedding, 0.0, 0.1)
+
+        nn.init.constant_(self.linear_out.weight, 0)
+        nn.init.constant_(self.linear_out.bias, 0)
+
+        self.input_module.reset_parameters()
+        self.output_module.reset_parameters()
+
+        if type(self.rnn) is nn.LSTMCell:
+            nn.init.xavier_uniform_(self.rnn.weight_ih)
+            nn.init.orthogonal_(self.rnn.weight_hh)
+            nn.init.constant_(self.rnn.bias_ih, val=0)
+            # # cuDNN bias order: https://docs.nvidia.com/deeplearning/sdk/cudnn-developer-guide/index.html#cudnnRNNMode_t
+            # # add some positive bias for the forget gates [b_i, b_f, b_o, b_g] = [0, 1, 0, 0]
+            nn.init.constant_(self.rnn.bias_hh, val=0)
+            nn.init.constant_(
+                self.rnn.bias_hh[self.hidden_size : 2 * self.hidden_size], val=1
+            )
 
     def forward(self, hidden_state=None, messages=None, device=None, tau=1.2):
         """
