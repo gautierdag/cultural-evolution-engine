@@ -35,7 +35,7 @@ class ShapesMetaVisualModule(nn.Module):
             self.process_input = nn.Linear(
                 *(meta_dim, hidden_size) if sender else (hidden_size, meta_dim)
             )
-    
+
     def reset_parameters(self):
         if self.process:
             self.process_input.reset_parameters()
@@ -335,13 +335,14 @@ class ShapesReceiver(nn.Module):
 
 class ShapesSingleModel(ShapesSender):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
         self.output_module = ShapesMetaVisualModule(
             hidden_size=kwargs["hidden_size"],
             dataset_type=kwargs["dataset_type"],
             sender=False,
         )
+
+        super().__init__(*args, **kwargs)
 
     def reset_parameters(self):
         nn.init.normal_(self.embedding, 0.0, 0.1)
