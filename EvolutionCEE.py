@@ -368,7 +368,7 @@ class EvolutionCEE(BaseCEE):
         receiver_agents, receiver_losses = self.sort_agents(
             receiver=True, dynamic=False, k_shot=step
         )
-        losses = sender_losses + sender_losses
+        losses = sender_losses + receiver_losses
         return mean(losses)
 
     def save_genotypes_to_writer(self, writer, receiver=False):
