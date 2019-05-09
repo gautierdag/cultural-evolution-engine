@@ -183,7 +183,7 @@ def baseline(args):
     model_name = get_filename_from_baseline_params(args)
     run_folder = "runs/" + model_name
     writer = SummaryWriter(log_dir=run_folder + "/" + str(args.seed))
-    train_data, valid_data, test_data, valid_meta_data, valid_features, eval_train_data = get_training_data(
+    train_data, valid_data, test_data, valid_meta_data, valid_features, _ = get_training_data(
         args
     )
     # Print info
@@ -214,13 +214,15 @@ def baseline(args):
 
     # Train
     i = 0
+    running_loss = 0.0
+
     while i < args.iterations:
         for train_batch in train_data:
 
             loss, acc = train_one_batch(model, train_batch, optimizer)
+            running_loss += loss
 
             if i % args.log_interval == 0:
-                loss_meter, acc_meter, _, _, _, _, = evaluate(model, eval_train_data)
 
                 valid_loss_meter, valid_acc_meter, valid_entropy_meter, valid_messages, hidden_sender, hidden_receiver = evaluate(
                     model, valid_data
@@ -240,19 +242,15 @@ def baseline(args):
                 l_entropy = language_entropy(valid_messages)
 
                 if writer is not None:
-                    writer.add_scalar("train_avg_loss", loss_meter.avg, i)
-                    writer.add_scalar("train_avg_acc", acc_meter.avg, i)
                     writer.add_scalar("avg_loss", valid_loss_meter.avg, i)
+                    writer.add_scalar("avg_convergence", running_loss / (i + 1), i)
                     writer.add_scalar("avg_acc", valid_acc_meter.avg, i)
                     writer.add_scalar("avg_entropy", valid_entropy_meter.avg, i)
-                    writer.add_scalar("num_unique_messages", num_unique_messages, i)
+                    writer.add_scalar("avg_unique_messages", num_unique_messages, i)
                     writer.add_scalar("rsa_sr", rsa_sr, i)
                     writer.add_scalar("rsa_si", rsa_si, i)
                     writer.add_scalar("rsa_ri", rsa_ri, i)
                     writer.add_scalar("rsa_sm", rsa_sm, i)
-                    writer.add_scalar(
-                        "generalization_error", acc_meter.avg - valid_acc_meter.avg, i
-                    )
                     writer.add_scalar(
                         "topological_similarity", topological_similarity, i
                     )
@@ -262,6 +260,25 @@ def baseline(args):
                 if valid_acc_meter.avg > best_valid_acc:
                     best_valid_acc = valid_acc_meter.avg
                     torch.save(model.state_dict(), "{}/best_model".format(run_folder))
+
+                metrics = {
+                    "loss": valid_loss_meter.avg,
+                    "acc": valid_acc_meter.avg,
+                    "entropy": valid_entropy_meter.avg,
+                    "l_entropy": l_entropy,
+                    "rsa_sr": rsa_sr,
+                    "rsa_si": rsa_si,
+                    "rsa_ri": rsa_ri,
+                    "rsa_sm": rsa_sm,
+                    "pseudo_tre": pseudo_tre,
+                    "topological_similarity": topological_similarity,
+                    "num_unique_messages": num_unique_messages,
+                    "avg_convergence": running_loss / (i + 1),
+                }
+                # dump metrics
+                pickle.dump(
+                    metrics, open("{}/metrics_at_{}.p".format(run_folder, i), "wb")
+                )
 
                 # Skip for now
                 print(
