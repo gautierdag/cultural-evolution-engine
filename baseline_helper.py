@@ -124,33 +124,50 @@ def get_sender_receiver(args):
         meta_vocab_size = 13
 
     if args.task == "obverter" or (args.obverter_setup and args.task == "shapes"):
-        s_visual_module = ObverterMetaVisualModule(
-            hidden_size=sender.hidden_size,
-            dataset_type=args.dataset_type,
-            meta_vocab_size=meta_vocab_size,
-        )
-        r_visual_module = ObverterMetaVisualModule(
-            hidden_size=receiver.hidden_size,
-            dataset_type=args.dataset_type,
-            meta_vocab_size=meta_vocab_size,
-        )
-        sender.input_module = s_visual_module
-        receiver.input_module = r_visual_module
+        if args.freeze_sender:
+            for param in sender.parameters():
+                param.requires_grad = False
+        else:
+            s_visual_module = ObverterMetaVisualModule(
+                hidden_size=sender.hidden_size,
+                dataset_type=args.dataset_type,
+                meta_vocab_size=meta_vocab_size,
+            )
+            sender.input_module = s_visual_module
+        if args.freeze_receiver:
+            for param in receiver.parameters():
+                param.requires_grad = False
+        else:
+            r_visual_module = ObverterMetaVisualModule(
+                hidden_size=receiver.hidden_size,
+                dataset_type=args.dataset_type,
+                meta_vocab_size=meta_vocab_size,
+            )
+            receiver.input_module = r_visual_module
 
     if args.task == "shapes" and not args.obverter_setup:
-        s_visual_module = ShapesMetaVisualModule(
-            hidden_size=sender.hidden_size, dataset_type=args.dataset_type
-        )
-        r_visual_module = ShapesMetaVisualModule(
-            hidden_size=receiver.hidden_size,
-            dataset_type=args.dataset_type,
-            sender=False,
-        )
-        sender.input_module = s_visual_module
-        if args.single_model:
-            receiver.output_module = r_visual_module
+        if args.freeze_sender:
+            for param in sender.parameters():
+                param.requires_grad = False
         else:
-            receiver.input_module = r_visual_module
+            s_visual_module = ShapesMetaVisualModule(
+                hidden_size=sender.hidden_size, dataset_type=args.dataset_type
+            )
+            sender.input_module = s_visual_module
+        if args.freeze_receiver:
+            for param in receiver.parameters():
+                param.requires_grad = False
+        else:
+            r_visual_module = ShapesMetaVisualModule(
+                hidden_size=receiver.hidden_size,
+                dataset_type=args.dataset_type,
+                sender=False,
+            )
+
+            if args.single_model:
+                receiver.output_module = r_visual_module
+            else:
+                receiver.input_module = r_visual_module
 
     return sender, receiver
 

@@ -144,6 +144,16 @@ def parse_arguments(args):
         help="Receiver to be loaded",
     )
     parser.add_argument(
+        "--freeze-sender",
+        help="Freeze sender weights (do not train) ",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--freeze-receiver",
+        help="Freeze receiver weights (do not train) ",
+        action="store_true",
+    )
+    parser.add_argument(
         "--obverter-setup",
         help="Enable obverter setup with shapes",
         action="store_true",
