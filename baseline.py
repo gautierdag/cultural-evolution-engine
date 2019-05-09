@@ -282,14 +282,8 @@ def baseline(args):
 
                 # Skip for now
                 print(
-                    "{}/{} Iterations: average train loss: {}, average val loss: {}, \
-                        average accuracy: {}, average val accuracy: {}".format(
-                        i,
-                        args.iterations,
-                        loss_meter.avg,
-                        valid_loss_meter.avg,
-                        acc_meter.avg,
-                        valid_acc_meter.avg,
+                    "{}/{} Iterations: val loss: {}, val accuracy: {}".format(
+                        i, args.iterations, valid_loss_meter.avg, valid_acc_meter.avg
                     )
                 )
 
