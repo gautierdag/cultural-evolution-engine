@@ -65,6 +65,7 @@ class ShapesSender(nn.Module):
         cell_type="lstm",
         genotype=None,
         dataset_type="meta",
+        reset_params=True,
     ):
         super().__init__()
         self.vocab_size = vocab_size
@@ -100,8 +101,8 @@ class ShapesSender(nn.Module):
         self.linear_out = nn.Linear(
             hidden_size, vocab_size
         )  # from a hidden state to the vocab
-
-        self.reset_parameters()
+        if reset_params:
+            self.reset_parameters()
 
     def reset_parameters(self):
         nn.init.normal_(self.embedding, 0.0, 0.1)
@@ -335,7 +336,7 @@ class ShapesReceiver(nn.Module):
 
 class ShapesSingleModel(ShapesSender):
     def __init__(self, *args, **kwargs):
-
+        kwargs["reset_params"] = False
         super().__init__(*args, **kwargs)
 
         self.output_module = ShapesMetaVisualModule(
