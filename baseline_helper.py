@@ -6,14 +6,12 @@ from data.obverter import get_obverter_metadata, get_obverter_features
 
 
 from model import (
-    ShapesReceiver,
-    ShapesSender,
+    ShapesModel,
     ShapesTrainer,
     ObverterReceiver,
     ObverterSender,
     ObverterTrainer,
     generate_genotype,
-    ShapesSingleModel,
     ShapesMetaVisualModule,
     ObverterSingleModel,
     ObverterMetaVisualModule,
