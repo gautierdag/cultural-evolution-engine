@@ -336,13 +336,15 @@ class ShapesReceiver(nn.Module):
 class ShapesSingleModel(ShapesSender):
     def __init__(self, *args, **kwargs):
 
+        super().__init__(*args, **kwargs)
+
         self.output_module = ShapesMetaVisualModule(
             hidden_size=kwargs["hidden_size"],
             dataset_type=kwargs["dataset_type"],
             sender=False,
         )
 
-        super().__init__(*args, **kwargs)
+        self.reset_parameters()
 
     def reset_parameters(self):
         nn.init.normal_(self.embedding, 0.0, 0.1)

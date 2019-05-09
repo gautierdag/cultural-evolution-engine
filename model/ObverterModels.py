@@ -345,13 +345,16 @@ class ObverterReceiver(nn.Module):
 
 class ObverterSingleModel(ObverterSender):
     def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
         self.output_layer = nn.Sequential(
             nn.Linear(2 * kwargs["hidden_size"], kwargs["hidden_size"]),
             nn.ReLU(),
             nn.Linear(kwargs["hidden_size"], 2),
         )
 
-        super().__init__(*args, **kwargs)
+        self.reset_parameters()
 
     def reset_parameters(self):
         nn.init.normal_(self.embedding, 0.0, 0.1)
