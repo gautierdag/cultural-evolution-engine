@@ -175,6 +175,9 @@ def get_filename_from_baseline_params(params):
     """
     Generates a filename from baseline params (see baseline.py)
     """
+    if params.name:
+        return params.name
+
     name = params.task
     name += "_{}".format(params.dataset_type)
     name += "_e_{}".format(params.embedding_size)
@@ -196,8 +199,6 @@ def get_filename_from_baseline_params(params):
         name += "_loaded_from_path"
     if params.obverter_setup:
         name = "obverter_setup_with_" + name
-    if params.name:
-        name += params.name
     return name
 
 

@@ -165,6 +165,14 @@ def parse_arguments(args):
         metavar="S",
         help="Name to append to run file name",
     )
+    parser.add_argument(
+        "--folder",
+        type=str,
+        default=False,
+        metavar="S",
+        help="Additional folder within runs/",
+    )
+    parser.add_argument("--disable-print", help="Disable printing", action="store_true")
 
     args = parser.parse_args(args)
 
@@ -181,22 +189,22 @@ def baseline(args):
     seed_torch(seed=args.seed)
 
     model_name = get_filename_from_baseline_params(args)
-    run_folder = "runs/" + model_name
+    if not args.folder:
+        run_folder = "runs/" + model_name
+    else:
+        run_folder = "runs/" + args.folder + "/" + model_name
+
     writer = SummaryWriter(log_dir=run_folder + "/" + str(args.seed))
     train_data, valid_data, test_data, valid_meta_data, valid_features, _ = get_training_data(
         args
     )
-    # Print info
-    print("----------------------------------------")
-    print(
-        "Model name: {} \n|V|: {}\nL: {}".format(
-            model_name, args.vocab_size, args.max_length
-        )
-    )
+
+    # dump arguments
+    pickle.dump(args, open("{}/experiment_params.p".format(run_folder), "wb"))
+
     # get sender and receiver models and save them
     sender, receiver = get_sender_receiver(args)
-    print(sender)
-    print(receiver)
+
     sender_file = "{}/sender.p".format(run_folder)
     receiver_file = "{}/receiver.p".format(run_folder)
     torch.save(sender, sender_file)
@@ -205,7 +213,18 @@ def baseline(args):
     model = get_trainer(sender, receiver, args)
 
     pytorch_total_params = sum(p.numel() for p in model.parameters())
-    print("Total number of parameters: {}".format(pytorch_total_params))
+
+    if not args.disable_print:
+        # Print info
+        print("----------------------------------------")
+        print(
+            "Model name: {} \n|V|: {}\nL: {}".format(
+                model_name, args.vocab_size, args.max_length
+            )
+        )
+        print(sender)
+        print(receiver)
+        print("Total number of parameters: {}".format(pytorch_total_params))
 
     model.to(device)
 
@@ -281,11 +300,15 @@ def baseline(args):
                 )
 
                 # Skip for now
-                print(
-                    "{}/{} Iterations: val loss: {}, val accuracy: {}".format(
-                        i, args.iterations, valid_loss_meter.avg, valid_acc_meter.avg
+                if not args.disable_print:
+                    print(
+                        "{}/{} Iterations: val loss: {}, val accuracy: {}".format(
+                            i,
+                            args.iterations,
+                            valid_loss_meter.avg,
+                            valid_acc_meter.avg,
+                        )
                     )
-                )
 
             i += 1
 
@@ -298,7 +321,8 @@ def baseline(args):
     best_model.to(device)
     # Evaluate best model on test data
     _, test_acc_meter, _, test_messages, _, _ = evaluate(best_model, test_data)
-    print("Test accuracy: {}".format(test_acc_meter.avg))
+    if not args.disable_print:
+        print("Test accuracy: {}".format(test_acc_meter.avg))
 
     # Update receiver and sender files with new state
     torch.save(best_model.sender, sender_file)
@@ -312,7 +336,8 @@ def baseline(args):
     pickle.dump(
         test_acc_meter, open("{}/test_accuracy_meter.p".format(run_folder), "wb")
     )
-    return model_name
+
+    return run_folder
 
 
 if __name__ == "__main__":
