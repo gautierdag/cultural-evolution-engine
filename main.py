@@ -251,7 +251,9 @@ def main(args):
     while i < args.iterations:
         for batch in train_data:
             evolution_cee.train_population(batch)
-            evolution_cee.save()
+            if i % 100 == 0:  # save 100 iterations
+                evolution_cee.save()
+
             if i % args.log_interval == 0:
                 metrics = evolution_cee.evaluate_population(
                     valid_data, valid_meta_data, valid_features, advanced=True

@@ -312,6 +312,7 @@ def baseline(args):
     pickle.dump(
         test_acc_meter, open("{}/test_accuracy_meter.p".format(run_folder), "wb")
     )
+    return model_name
 
 
 if __name__ == "__main__":
