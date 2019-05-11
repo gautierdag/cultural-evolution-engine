@@ -83,6 +83,8 @@ def get_sender_receiver(args):
                 embedding_size=args.embedding_size,
                 hidden_size=args.hidden_size,
                 greedy=args.greedy,
+                cell_type=cell_type,
+                genotype=genotype,
                 dataset_type=args.dataset_type,
             )
             receiver = ObverterSingleModel(
@@ -92,6 +94,8 @@ def get_sender_receiver(args):
                 embedding_size=args.embedding_size,
                 hidden_size=args.hidden_size,
                 greedy=args.greedy,
+                cell_type=cell_type,
+                genotype=genotype,
                 dataset_type=args.dataset_type,
             )
         else:
@@ -102,12 +106,16 @@ def get_sender_receiver(args):
                 embedding_size=args.embedding_size,
                 hidden_size=args.hidden_size,
                 greedy=args.greedy,
+                cell_type=cell_type,
+                genotype=genotype,
                 dataset_type=args.dataset_type,
             )
             receiver = ObverterReceiver(
                 args.vocab_size,
                 hidden_size=args.hidden_size,
                 embedding_size=args.embedding_size,
+                cell_type=cell_type,
+                genotype=genotype,
                 dataset_type=args.dataset_type,
             )
     else:
@@ -134,6 +142,7 @@ def get_sender_receiver(args):
                 meta_vocab_size=meta_vocab_size,
             )
             sender.input_module = s_visual_module
+            sender.reset_parameters()
         if args.freeze_receiver:
             for param in receiver.parameters():
                 param.requires_grad = False
@@ -144,6 +153,7 @@ def get_sender_receiver(args):
                 meta_vocab_size=meta_vocab_size,
             )
             receiver.input_module = r_visual_module
+            receiver.reset_parameters()
 
     if args.task == "shapes" and not args.obverter_setup:
         if args.freeze_sender:

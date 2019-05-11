@@ -118,9 +118,9 @@ def parse_arguments(args):
     parser.add_argument(
         "--num-nodes",
         type=int,
-        default=8,
+        default=4,
         metavar="N",
-        help="Size of darts cell to use with random-darts (default: 8)",
+        help="Size of darts cell to use with random-darts (default: 4)",
     )
     parser.add_argument(
         "--lr",
