@@ -30,7 +30,8 @@ def get_sender_receiver(args):
         if args.darts:
             cell_type = "darts"
             genotype = generate_genotype(num_nodes=args.num_nodes)
-            print(genotype)
+            if not args.disable_print:
+                print(genotype)
         if args.single_model:
             sender = ShapesSingleModel(
                 args.vocab_size,
