@@ -316,8 +316,10 @@ class EvolutionCEE(BaseCEE):
         values, agents = zip(*sorted(zip(values, agents)))
         return list(agents), list(values)
 
-    def save_best_agent(self, att, generation, agent):
-        agent_filename = "{}/best_{}_at_".format(self.run_folder, att[:-1], generation)
+    def save_best_agent(self, att, agent):
+        agent_filename = "{}/best_{}_at_".format(
+            self.run_folder, att[:-1], self.iteration
+        )
         pickle.dump(agent, open(agent_filename + ".p", "wb"))
 
     def mutate_population(self, receiver=False, culling_rate=0.2, mode="best"):
@@ -328,7 +330,6 @@ class EvolutionCEE(BaseCEE):
                                             default: 0.2
             mode (string, optional): argument for sampling {best, greedy}
         """
-        self.generation += 1
 
         if self.params.single_pool:
             att = "agents"
@@ -345,7 +346,7 @@ class EvolutionCEE(BaseCEE):
         if mode == "best":
             agents, _ = self.sort_agents(receiver=receiver)
             best_agent = getattr(self, att)[agents[0]]
-            self.save_best_agent(att, generation, best_agent)
+            self.save_best_agent(att, best_agent)
 
             # replace worst c models with mutated version of best
             agents.reverse()  # resort from worst to best
@@ -357,7 +358,7 @@ class EvolutionCEE(BaseCEE):
         if mode == "greedy":
             agents, values = self.sort_agents(receiver=receiver)
             best_agent = getattr(self, att)[agents[0]]
-            self.save_best_agent(att, generation, best_agent)
+            self.save_best_agent(att, best_agent)
 
             # deep copy in case best agent is selected to be culled
             best_geno = copy.deepcopy(best_agent.genotype)

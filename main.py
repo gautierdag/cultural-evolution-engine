@@ -346,6 +346,7 @@ def main(args):
             if i % args.culling_interval == 0 and i > 0:
                 if args.evolution:
                     evolution_cee.save_genotypes_to_writer(writer)
+                    evolution_cee.generation += 1
                     evolution_cee.mutate_population(
                         culling_rate=args.culling_rate, mode=args.evolution_mode
                     )
