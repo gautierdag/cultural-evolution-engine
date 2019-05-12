@@ -38,6 +38,9 @@ class EvolutionCEE(BaseCEE):
             Args:
                 params (required): params obtained from argparse
         """
+        if params.save_example_batch:
+            create_folder_if_not_exists(self.run_folder + "/messages")
+
         if params.single_pool:
             create_folder_if_not_exists(self.run_folder + "/agents")
             if params.evolution:
@@ -97,8 +100,21 @@ class EvolutionCEE(BaseCEE):
 
         self.iteration += 1
 
+    def save_messages(messages, sender, i):
+        filename = "{}/messages/message_from_{}_at_{}".format(
+            self.run_folder, sender.agent_id, i
+        )
+        messages = messages.cpu().numpy()[:10]
+        pickle.dump(messages, open(self.run_folder + "/cee.p", "wb"))
+
     def evaluate_population(
-        self, test_data, meta_data, features, advanced=False, max_senders=16
+        self,
+        test_data,
+        meta_data,
+        features,
+        advanced=False,
+        max_senders=16,
+        save_example_batch=False,
     ):
         """
         Evaluates language for population
@@ -145,10 +161,15 @@ class EvolutionCEE(BaseCEE):
                 s, r, test_data
             )
             metrics["num_unique_messages"] += len(torch.unique(msgs, dim=0))
+
+            if save_example_batch:
+                self.save_messages(msgs, s, save_example_batch)
+
             if advanced:
                 sr, si, ri, sm, ts, pt, l_entropy = self.get_message_metrics(
                     msgs, H_s, H_r, meta_data, features
                 )
+
                 metrics["rsa_sr"] += sr
                 metrics["rsa_si"] += si
                 metrics["rsa_ri"] += ri
@@ -295,6 +316,10 @@ class EvolutionCEE(BaseCEE):
         values, agents = zip(*sorted(zip(values, agents)))
         return list(agents), list(values)
 
+    def save_best_agent(self, att, generation, agent):
+        agent_filename = "{}/best_{}_at_".format(self.run_folder, att[:-1], generation)
+        pickle.dump(agent, open(agent_filename + ".p", "wb"))
+
     def mutate_population(self, receiver=False, culling_rate=0.2, mode="best"):
         """
         mutates Population according to culling rate and mode
@@ -320,6 +345,7 @@ class EvolutionCEE(BaseCEE):
         if mode == "best":
             agents, _ = self.sort_agents(receiver=receiver)
             best_agent = getattr(self, att)[agents[0]]
+            self.save_best_agent(att, generation, best_agent)
 
             # replace worst c models with mutated version of best
             agents.reverse()  # resort from worst to best
@@ -330,7 +356,11 @@ class EvolutionCEE(BaseCEE):
 
         if mode == "greedy":
             agents, values = self.sort_agents(receiver=receiver)
-            best_geno = copy.deepcopy(getattr(self, att)[agents[0]].genotype)
+            best_agent = getattr(self, att)[agents[0]]
+            self.save_best_agent(att, generation, best_agent)
+
+            # deep copy in case best agent is selected to be culled
+            best_geno = copy.deepcopy(best_agent.genotype)
 
             # replace sampled worst c models with mutated version of best
             p = scipy.special.softmax(np.array(values))

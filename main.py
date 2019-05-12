@@ -8,7 +8,7 @@ import warnings
 
 from tensorboardX import SummaryWriter
 from utils import *
-from baseline_helper import get_training_data
+from baseline_helper import get_training_data, save_example_images
 
 from EvolutionCEE import EvolutionCEE
 
@@ -190,6 +190,11 @@ def parse_arguments(args):
         help="Enable obverter setup with shapes",
         action="store_true",
     )
+    parser.add_argument(
+        "--save-example-batch",
+        help="Enable obverter setup with shapes",
+        action="store_true",
+    )
 
     args = parser.parse_args(args)
 
@@ -225,6 +230,9 @@ def main(args):
     # Create Experiment folder if doesn't exist
     create_folder_if_not_exists(experiment_folder)
 
+    if args.save_example_batch:
+        save_example_images(args, experiment_folder)
+
     # Save experiment params
     pickle.dump(args, open("{}/experiment_params.p".format(experiment_folder), "wb"))
 
@@ -232,7 +240,7 @@ def main(args):
     writer = SummaryWriter(log_dir=experiment_folder)
 
     # Load Data
-    train_data, valid_data, test_data, valid_meta_data, valid_features, _ = get_training_data(
+    train_data, valid_data, test_data, valid_meta_data, valid_features = get_training_data(
         args
     )
 
@@ -256,7 +264,11 @@ def main(args):
 
             if i % args.log_interval == 0:
                 metrics = evolution_cee.evaluate_population(
-                    valid_data, valid_meta_data, valid_features, advanced=True
+                    valid_data,
+                    valid_meta_data,
+                    valid_features,
+                    advanced=True,
+                    save_example_batch=i if args.save_example_batch else False,
                 )
 
                 writer.add_scalar("avg_acc", metrics["acc"], i)

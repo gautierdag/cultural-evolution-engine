@@ -12,21 +12,26 @@ from .get_obverter_setup import get_obverter_setup
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 
-def get_shapes_features(dataset="test"):
+def get_shapes_features(dataset="valid", mode="features"):
     """
     Returns numpy array with matching features
     Args:
         dataset (str) in {'train', 'valid', 'test'}
+        mode (str) in {"features", "raw"}
     """
-    features_path = "{}/{}_features.npy".format(dir_path, dataset)
+    if mode == "features":
+        features_path = "{}/{}_features.npy".format(dir_path, dataset)
 
-    if not os.path.isfile(features_path):
+        if not os.path.isfile(features_path):
+            images = np.load("{}/balanced/{}.input.npy".format(dir_path, dataset))
+            features = get_features("shapes", images)
+            np.save(features_path, features)
+            assert len(features) == len(images)
+
+        return np.load(features_path)
+    else:
         images = np.load("{}/balanced/{}.input.npy".format(dir_path, dataset))
-        features = get_features("shapes", images)
-        np.save(features_path, features)
-        assert len(features) == len(images)
-
-    return np.load(features_path)
+        return images
 
 
 def get_dataloaders(

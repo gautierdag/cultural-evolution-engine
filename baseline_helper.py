@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 from data import AgentVocab, get_shapes_dataloader, get_obverter_dataloader
 from data.shapes import get_shapes_metadata, get_shapes_features
@@ -203,14 +204,6 @@ def get_training_data(args):
         )
         valid_meta_data = get_shapes_metadata(dataset="valid")
         valid_features = get_shapes_features(dataset="valid")
-        eval_train_data = get_shapes_dataloader(
-            batch_size=args.batch_size,
-            k=args.k,
-            debug=args.debugging,
-            dataset="train",
-            dataset_type=args.dataset_type,
-            obverter_setup=args.obverter_setup,
-        )
 
     elif args.task == "obverter":
         train_data, valid_data, test_data = get_obverter_dataloader(
@@ -222,24 +215,24 @@ def get_training_data(args):
             dataset="valid", first_picture_only=True
         )
         valid_features = get_obverter_features(dataset="valid")
-        # eval train data is separate train dataloader to calculate
-        # loss/acc on full set and get generalization error
-        eval_train_data = get_obverter_dataloader(
-            batch_size=args.batch_size,
-            debug=args.debugging,
-            dataset="train",
-            dataset_type=args.dataset_type,
-        )
 
     else:
         raise ValueError("Unsupported task type : {}".formate(args.task))
 
-    return (
-        train_data,
-        valid_data,
-        test_data,
-        valid_meta_data,
-        valid_features,
-        eval_train_data,
-    )
+    return (train_data, valid_data, test_data, valid_meta_data, valid_features)
 
+
+def get_raw_data(args, dataset="valid"):
+    if args.task == "shapes":
+        valid_raw = get_shapes_features(dataset=dataset, mode="raw")
+        return valid_raw
+    else:
+        raise ValueError("Unsupported task type for raw : {}".formate(args.task))
+
+
+def save_example_images(args, filename):
+    if args.save_example_batch:
+        valid_raw = get_raw_data(args)
+        valid_raw = valid_raw[:10]
+        file_path = filename + '/example_batch.npy
+        np.save(file_path, valid_raw)

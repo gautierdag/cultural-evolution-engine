@@ -195,7 +195,7 @@ def baseline(args):
         run_folder = "runs/" + args.folder + "/" + model_name
 
     writer = SummaryWriter(log_dir=run_folder + "/" + str(args.seed))
-    train_data, valid_data, test_data, valid_meta_data, valid_features, _ = get_training_data(
+    train_data, valid_data, test_data, valid_meta_data, valid_features = get_training_data(
         args
     )
 
