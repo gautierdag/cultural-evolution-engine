@@ -318,7 +318,7 @@ class EvolutionCEE(BaseCEE):
 
     def save_best_agent(self, att, agent):
         agent_filename = "{}/best_{}_at_{}".format(
-            self.run_folder, att[:-1], self.iteration
+            self.run_folder, att[:-1], self.iteration - 1
         )
         pickle.dump(agent, open(agent_filename + ".p", "wb"))
 
