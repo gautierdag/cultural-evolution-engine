@@ -100,7 +100,7 @@ class EvolutionCEE(BaseCEE):
 
         self.iteration += 1
 
-    def save_messages(messages, sender, i):
+    def save_messages(self, messages, sender, i):
         filename = "{}/messages/message_from_{}_at_{}".format(
             self.run_folder, sender.agent_id, i
         )
