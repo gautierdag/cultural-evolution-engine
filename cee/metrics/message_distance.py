@@ -2,7 +2,7 @@ import numpy as np
 import itertools
 import scipy.spatial
 import scipy.stats
-from sklearn.metrics import jaccard_similarity_score
+from sklearn.metrics import jaccard_score
 from .rsa import one_hot
 
 
@@ -45,8 +45,8 @@ def jaccard_similarity(messages, samples=200):
     for c in combinations:
         for _ in range(samples):
             s = np.random.randint(N)
-            score += jaccard_similarity_score(
-                messages[s, c[0], :], messages[s, c[1], :]
+            score += jaccard_score(
+                messages[s, c[0], :], messages[s, c[1], :], average="macro"
             )
 
     # average over number of combinations
