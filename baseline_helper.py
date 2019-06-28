@@ -24,15 +24,15 @@ from model import (
 def get_sender_receiver(args):
     # Load Vocab
     vocab = AgentVocab(args.vocab_size)
+    cell_type = "lstm"
+    genotype = {}
+    if args.darts:
+        cell_type = "darts"
+        genotype = generate_genotype(num_nodes=args.num_nodes)
+        if not args.disable_print:
+            print(genotype)
 
     if args.task == "shapes" and not args.obverter_setup:
-        cell_type = "lstm"
-        genotype = {}
-        if args.darts:
-            cell_type = "darts"
-            genotype = generate_genotype(num_nodes=args.num_nodes)
-            if not args.disable_print:
-                print(genotype)
         if args.single_model:
             sender = ShapesSingleModel(
                 args.vocab_size,
