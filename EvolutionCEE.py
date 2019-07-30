@@ -104,7 +104,7 @@ class EvolutionCEE(BaseCEE):
         filename = "{}/messages/message_from_{}_at_{}".format(
             self.run_folder, sender.agent_id, i
         )
-        messages = messages.cpu().numpy()[:10]
+        messages = messages.cpu().numpy()
         pickle.dump(messages, open(filename, "wb"))
 
     def evaluate_population(

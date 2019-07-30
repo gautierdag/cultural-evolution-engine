@@ -233,6 +233,10 @@ def get_raw_data(args, dataset="valid"):
 def save_example_images(args, filename):
     if args.save_example_batch:
         valid_raw = get_raw_data(args)
-        valid_raw = valid_raw[:10]
+        valid_raw = valid_raw
         file_path = filename + "/example_batch.npy"
         np.save(file_path, valid_raw)
+        valid_meta = get_shapes_metadata(dataset="valid")
+
+        file_path = filename + "/example_batch_meta.npy"
+        np.save(file_path, valid_meta)

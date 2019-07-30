@@ -230,8 +230,7 @@ def main(args):
     # Create Experiment folder if doesn't exist
     create_folder_if_not_exists(experiment_folder)
 
-    if args.save_example_batch:
-        save_example_images(args, experiment_folder)
+    save_example_images(args, experiment_folder)
 
     # Save experiment params
     pickle.dump(args, open("{}/experiment_params.p".format(experiment_folder), "wb"))
